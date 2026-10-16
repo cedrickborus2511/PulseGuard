@@ -1,9 +1,10 @@
 /**
- * PULSE GUARD // VERSION 4.0 JAVASCRIPT ENGINE
- * Soft Pastel Aesthetics & High-Contrast Daylight Mode
- * Edit Stock Capabilities in Every Box (Code, Name, Price, Cost, Profit, Dealer)
- * Multiple Managers & Shift Schedule Roster
- * FORCE AI Copilot // Friendly Store Pal Voice
+ * PULSE GUARD // VERSION 5.0 JAVASCRIPT ENGINE
+ * Soft Pastel Aesthetics & Anti-Glare High-Contrast Daylight Mode
+ * Edit & Delete Stock Capabilities in Every Box (Code, Name, Price, Cost, Profit, Dealer)
+ * Exact Hours Depletion Formatting for Horizons Under 24h (< 1.0 Day)
+ * Centered Store Manager Roster & Shift Schedules
+ * Upgraded Realistic FORCE AI Copilot with Quick Prompt Chips & Store Floor Intelligence
  * POS Auto-Stock Deduction & Reconciled Financials
  */
 
@@ -15,7 +16,7 @@ const SEED_PRODUCTS = [
     code: "1001",
     name: "Rotring 600 Precision Drafting Pen 0.5mm",
     category: "Stationeries",
-    stock: 3, // Stage 3 Critical (28/wk -> 4/day -> 3/4 = 0.75 days left)
+    stock: 3, // Stage 3 Critical (28/wk -> 4/day -> 3/4 = 0.75 days = 18 hours left)
     costPrice: 1450.00,
     sellingPrice: 2650.00,
     lastWeekSales: 28,
@@ -87,7 +88,7 @@ const SEED_PRODUCTS = [
     code: "4001",
     name: "Paracetamol 500mg IP Rapid Release (100 Tabs)",
     category: "Medicals & Drugs",
-    stock: 8, // Stage 3 Critical (70/wk -> 10/day -> 8/10 = 0.8 days left)
+    stock: 8, // Stage 3 Critical (70/wk -> 10/day -> 8/10 = 0.8 days = 19 hours left)
     costPrice: 120.00,
     sellingPrice: 280.00,
     lastWeekSales: 70,
@@ -130,7 +131,7 @@ const SEED_PRODUCTS = [
   }
 ];
 
-// Clean Department Categories
+// Department Categories
 const SEED_CATEGORIES = [
   { name: "Stationeries", icon: "edit-3" },
   { name: "Electronics", icon: "cpu" },
@@ -256,6 +257,7 @@ function applyTheme(theme) {
  * 3-STAGE ALERT & METRIC COMPUTATION
  * Daily Sales Speed = lastWeekSales / 7
  * Days Left = stock / Daily Sales Speed
+ * Exact Hours Conversion: If daysLeft < 1.0, marked in hours (e.g. 18h) instead of decimal days!
  */
 function computeMetrics(prod) {
   const weekly = Number(prod.lastWeekSales) || 1;
@@ -281,6 +283,35 @@ function computeMetrics(prod) {
     badgeClass = 'badge-stage1';
   }
 
+  // Exact hours conversion for depletions under 1 day (24 hours)
+  let timeFormatted = '';
+  let timeLeftBadge = '';
+  let horizonLabel = 'Days Until Empty';
+  let hoursLeft = 0;
+  const isHours = daysLeft < 1.0;
+
+  if (stock === 0) {
+    timeFormatted = '0h';
+    timeLeftBadge = 'Empty (0h)';
+    horizonLabel = 'Depletion Reached';
+    hoursLeft = 0;
+  } else if (daysLeft < 1.0) {
+    hoursLeft = Math.max(1, Math.round(daysLeft * 24));
+    timeFormatted = `${hoursLeft}h`;
+    timeLeftBadge = `${hoursLeft}h left`;
+    horizonLabel = hoursLeft === 1 ? 'Hour Until Empty' : 'Hours Until Empty';
+  } else if (daysLeft < 999) {
+    timeFormatted = `${daysLeft.toFixed(1)}d`;
+    timeLeftBadge = `${daysLeft.toFixed(1)}d left`;
+    horizonLabel = 'Days Until Empty';
+    hoursLeft = Math.round(daysLeft * 24);
+  } else {
+    timeFormatted = '99+d';
+    timeLeftBadge = '99+d left';
+    horizonLabel = 'Days Until Empty';
+    hoursLeft = 9999;
+  }
+
   const profitPerUnit = prod.sellingPrice - prod.costPrice;
   const profitMarginPct = prod.sellingPrice > 0 ? ((profitPerUnit / prod.sellingPrice) * 100) : 0;
   const weeklyProfit = weekly * profitPerUnit;
@@ -289,7 +320,12 @@ function computeMetrics(prod) {
 
   return {
     dailyBurn: dailyBurn.toFixed(2),
-    daysLeft: daysLeft < 999 ? daysLeft.toFixed(1) : '99+',
+    daysLeft: timeFormatted,
+    timeFormatted,
+    timeLeftBadge,
+    horizonLabel,
+    hoursLeft,
+    isHours,
     numericDaysLeft: daysLeft,
     stage,
     stageLabel,
@@ -337,16 +373,14 @@ function updateAlertBadge() {
 function renderActiveDutyHeader() {
   const activeMgr = appState.managers.find(m => m.active) || appState.managers[0];
   if (activeMgr) {
-    const nameEl = document.getElementById('sidebar-active-manager-name');
     const shiftEl = document.getElementById('sidebar-active-manager-shift');
-    if (nameEl) nameEl.innerText = activeMgr.name;
-    if (shiftEl) shiftEl.innerText = activeMgr.shift.split('(')[0].trim();
+    if (shiftEl) shiftEl.innerText = `${activeMgr.name} (${activeMgr.shift.split('(')[0].trim()})`;
   }
 }
 
 /**
  * ==========================================================================
- * PAGE 1: ALERTS FEED
+ * PAGE 1: ALERTS FEED (Under 7 Days Depletion)
  * ==========================================================================
  */
 function renderHomePage() {
@@ -386,7 +420,9 @@ function renderHomePage() {
 
     let problemText = "";
     if (m.stage === 'STAGE3') {
-      problemText = "Complete stockout imminent. Empty shelves lead to lost customer loyalty and immediate revenue destruction.";
+      problemText = m.isHours 
+        ? `Complete stockout imminent within ${m.hoursLeft} hours. Empty shelves lead to lost customer loyalty and immediate revenue destruction.`
+        : "Complete stockout imminent. Empty shelves lead to lost customer loyalty and immediate revenue destruction.";
     } else if (m.stage === 'STAGE2') {
       problemText = "Stock levels are critically low. High risk of stockout within 48 to 96 hours without fresh dealer purchase orders.";
     } else {
@@ -416,8 +452,8 @@ function renderHomePage() {
       <div class="alert-card-body">
         <div class="horizon-telemetry-row">
           <div>
-            <span class="horizon-days-big ${m.stage === 'STAGE3' ? 'text-red' : (m.stage === 'STAGE2' ? 'text-orange' : 'text-cyan')}">${m.daysLeft}d</span>
-            <span class="horizon-label">Days Until Empty</span>
+            <span class="horizon-days-big ${m.stage === 'STAGE3' ? 'text-red' : (m.stage === 'STAGE2' ? 'text-orange' : 'text-cyan')}">${m.timeFormatted}</span>
+            <span class="horizon-label">${m.horizonLabel}</span>
           </div>
           <div class="text-right">
             <span class="stock-balance-big text-white font-mono">${p.stock} Stocks Left</span>
@@ -450,7 +486,7 @@ function renderHomePage() {
         </div>
       </div>
 
-      <!-- Professional Action Strip with Edit Stock Button -->
+      <!-- Professional Action Strip with Edit & Delete Stock Buttons -->
       <div class="alert-action-strip">
         <div class="action-strip-btns">
           <button class="btn btn-ghost btn-sm" onclick="copyProductCode('${p.code}')" title="Copy Stock Code">
@@ -464,6 +500,10 @@ function renderHomePage() {
           <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Details For This Stock">
             <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
             <span>Edit Stock</span>
+          </button>
+          <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
+            <span>Delete</span>
           </button>
         </div>
         <div class="text-xs font-mono text-muted">
@@ -572,8 +612,8 @@ function renderProductFocusedChart() {
   if (pnlChartInstance) pnlChartInstance.destroy();
 
   const isLight = appState.theme === 'light';
-  const labelColor = isLight ? '#0f172a' : '#f1f5f9';
-  const tickColor = isLight ? '#334155' : '#94a3b8';
+  const labelColor = isLight ? '#090d16' : '#f1f5f9';
+  const tickColor = isLight ? '#1e293b' : '#94a3b8';
   const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
 
   pnlChartInstance = new Chart(ctx, {
@@ -590,11 +630,11 @@ function renderProductFocusedChart() {
           parseFloat(m.upcomingLoss7Days)
         ],
         backgroundColor: [
-          isLight ? 'rgba(100, 116, 139, 0.4)' : 'rgba(148, 163, 184, 0.4)',
-          isLight ? 'rgba(2, 132, 199, 0.45)' : 'rgba(56, 189, 248, 0.45)',
-          isLight ? 'rgba(21, 128, 61, 0.55)' : 'rgba(74, 222, 128, 0.55)',
-          isLight ? 'rgba(21, 128, 61, 0.8)' : 'rgba(74, 222, 128, 0.8)',
-          isLight ? 'rgba(220, 38, 38, 0.7)' : 'rgba(248, 113, 113, 0.7)'
+          isLight ? 'rgba(100, 116, 139, 0.45)' : 'rgba(148, 163, 184, 0.4)',
+          isLight ? 'rgba(2, 132, 199, 0.55)' : 'rgba(56, 189, 248, 0.45)',
+          isLight ? 'rgba(21, 128, 61, 0.65)' : 'rgba(74, 222, 128, 0.55)',
+          isLight ? 'rgba(21, 128, 61, 0.85)' : 'rgba(74, 222, 128, 0.8)',
+          isLight ? 'rgba(220, 38, 38, 0.8)' : 'rgba(248, 113, 113, 0.7)'
         ],
         borderColor: isLight 
           ? ['#64748b', '#0284c7', '#15803d', '#15803d', '#dc2626']
@@ -610,12 +650,12 @@ function renderProductFocusedChart() {
         legend: { labels: { color: labelColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: 700 } } }
       },
       scales: {
-        x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11, weight: 600 } } },
+        x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11, weight: 700 } } },
         y: {
           grid: { color: gridColor },
           ticks: {
             color: tickColor,
-            font: { family: 'JetBrains Mono', size: 11, weight: 600 },
+            font: { family: 'JetBrains Mono', size: 11, weight: 700 },
             callback: v => '₹' + v.toLocaleString('en-IN')
           }
         }
@@ -653,12 +693,18 @@ function renderAllProductsLedger() {
           <div class="flex justify-between text-red"><span>Risk If Unattended:</span><span>-₹${parseFloat(m.upcomingLoss7Days).toLocaleString('en-IN')}</span></div>
         </div>
 
-        <div class="pt-2 border-t border-white-5 flex justify-between items-center">
-          <span class="${m.badgeClass}">${m.daysLeft}d left</span>
-          <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${p.id}')">
-            <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
-            <span>Edit Stock</span>
-          </button>
+        <div class="pt-2 border-t border-white-5 flex justify-between items-center gap-2">
+          <span class="${m.badgeClass}">${m.timeLeftBadge}</span>
+          <div class="flex items-center gap-1.5">
+            <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit Stock Details">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
+              <span>Edit</span>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
+              <span>Delete</span>
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -687,7 +733,7 @@ function renderProductsPage() {
     `).join('');
   }
 
-  // Grouped Stocks with Edit Button inside EVERY Card
+  // Grouped Stocks with Edit & Delete Buttons inside EVERY Box
   const container = document.getElementById('products-grouped-container');
   if (container) {
     const q = (document.getElementById('inventory-search-input')?.value || '').toLowerCase().trim();
@@ -714,7 +760,7 @@ function renderProductsPage() {
                   <div>
                     <div class="flex justify-between items-start">
                       <span class="font-mono text-xs font-bold text-cyan">#${p.code}</span>
-                      <span class="${m.badgeClass}">${m.daysLeft}d left</span>
+                      <span class="${m.badgeClass}">${m.timeLeftBadge}</span>
                     </div>
                     <h4 class="font-bold text-white text-sm mt-1">${p.name}</h4>
                   </div>
@@ -741,11 +787,15 @@ function renderProductsPage() {
                     </div>
                   </div>
 
-                  <!-- EDIT BUTTON IN EVERY STOCK BOX -->
-                  <div class="pt-2 border-t border-white-5">
-                    <button class="btn btn-ghost btn-sm w-full font-bold" onclick="openEditStockModal('${p.id}')">
+                  <!-- ACTIONS: EDIT & DELETE BUTTONS IN EVERY STOCK BOX -->
+                  <div class="pt-2 border-t border-white-5 flex items-center gap-2">
+                    <button class="btn btn-ghost btn-sm flex-1 font-bold" onclick="openEditStockModal('${p.id}')" title="Edit details for #${p.code}">
                       <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
-                      <span>Edit Stock Box</span>
+                      <span>Edit</span>
+                    </button>
+                    <button class="btn btn-ghost btn-sm btn-delete font-bold px-2.5" onclick="promptDeleteStock('${p.id}')" title="Delete #${p.code} (${p.name})">
+                      <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
+                      <span>Delete</span>
                     </button>
                   </div>
                 </div>
@@ -757,7 +807,7 @@ function renderProductsPage() {
     }).join('');
   }
 
-  // Last Week Sales Separate Boxes (Ordered Top to Bottom) with Edit Button
+  // Last Week Sales Separate Boxes (Ordered Top to Bottom) with Edit & Delete Buttons
   const verticalBoxContainer = document.getElementById('sales-boxes-vertical-container');
   if (verticalBoxContainer) {
     const sorted = [...appState.products].sort((a, b) => a.code.localeCompare(b.code));
@@ -776,16 +826,20 @@ function renderProductsPage() {
           <div class="flex items-center gap-4 text-xs font-mono">
             <div><span class="text-muted block text-[10px]">CURRENT STOCK:</span><strong class="${p.stock <= 3 ? 'text-red' : 'text-white'}">${p.stock} units</strong></div>
             <div><span class="text-muted block text-[10px]">DAILY SPEED:</span><strong class="text-cyan">${m.dailyBurn}/d</strong></div>
-            <div><span class="text-muted block text-[10px]">DEPLETION:</span><strong class="${m.stage === 'STAGE3' ? 'text-red' : (m.stage === 'STAGE2' ? 'text-orange' : 'text-green')}">${m.daysLeft}d</strong></div>
+            <div><span class="text-muted block text-[10px]">DEPLETION:</span><strong class="${m.stage === 'STAGE3' ? 'text-red' : (m.stage === 'STAGE2' ? 'text-orange' : 'text-green')}">${m.timeFormatted}</strong></div>
           </div>
 
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
             <label class="text-xs text-muted font-mono" for="inp-sales-${p.id}">Last Week Sales:</label>
             <input type="number" step="0.5" min="1" id="inp-sales-${p.id}" value="${p.lastWeekSales}" class="v-input-field" />
-            <button class="btn btn-ghost btn-sm" onclick="saveWeeklySalesEntry('${p.id}')">Save Sales</button>
+            <button class="btn btn-ghost btn-sm" onclick="saveWeeklySalesEntry('${p.id}')">Save</button>
             <button class="btn btn-primary btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Parameters For #${p.code}">
               <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-              <span>Edit Stock</span>
+              <span>Edit</span>
+            </button>
+            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
+              <span>Delete</span>
             </button>
           </div>
         </div>
@@ -912,6 +966,46 @@ function handleSaveEditedStock(e) {
   closeModal('modal-edit-stock');
   renderAll();
   showToast(`Successfully updated all parameters for Stock #${code} (${name})!`, "success");
+}
+
+/**
+ * ==========================================================================
+ * STOCK DELETION LOGIC (Prompt & Confirmation)
+ * ==========================================================================
+ */
+function promptDeleteStock(id) {
+  const prod = appState.products.find(p => p.id === id);
+  if (!prod) return showToast("Stock not found", "error");
+
+  const targetInput = document.getElementById('delete-target-id');
+  if (targetInput) targetInput.value = id;
+
+  const msgEl = document.getElementById('delete-confirm-msg');
+  if (msgEl) {
+    msgEl.innerHTML = `Are you sure you want to permanently delete <strong>#${prod.code} ${prod.name}</strong> (${prod.category})?<br/><br/><span class="text-xs text-muted font-mono">Current Stock: ${prod.stock} units &bull; Price: ₹${prod.sellingPrice.toFixed(2)}</span>`;
+  }
+
+  document.getElementById('modal-delete-confirm')?.classList.remove('hidden');
+}
+
+function executeDeleteStock() {
+  const targetId = document.getElementById('delete-target-id')?.value;
+  if (!targetId) return;
+
+  const prod = appState.products.find(p => p.id === targetId);
+  if (!prod) {
+    closeModal('modal-delete-confirm');
+    return;
+  }
+
+  // Remove from products and cart
+  appState.products = appState.products.filter(p => p.id !== targetId);
+  appState.cart = appState.cart.filter(item => item.id !== targetId);
+
+  saveState();
+  closeModal('modal-delete-confirm');
+  renderAll();
+  showToast(`Stock #${prod.code} (${prod.name}) permanently removed from inventory.`, "info");
 }
 
 /**
@@ -1052,9 +1146,15 @@ function renderManagersList() {
           </span>
         </div>
 
-        <div class="mgr-contacts-row">
-          <div><i data-lucide="mail" class="w-3 h-3 inline mr-1 text-muted"></i>${m.email}</div>
-          <div><i data-lucide="phone" class="w-3 h-3 inline mr-1 text-muted"></i>${m.phone}</div>
+        <div class="mgr-contacts-grid">
+          <div class="mgr-contact-chip" title="Manager Email">
+            <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan shrink-0"></i>
+            <span class="truncate">${m.email}</span>
+          </div>
+          <div class="mgr-contact-chip" title="Manager Phone Number">
+            <i data-lucide="phone" class="w-3.5 h-3.5 text-cyan shrink-0"></i>
+            <span class="truncate">${m.phone}</span>
+          </div>
         </div>
 
         <div class="manager-card-footer">
@@ -1208,6 +1308,7 @@ function renderCart() {
     document.getElementById('btn-complete-bill').disabled = false;
     box.innerHTML = appState.cart.map(c => {
       const p = appState.products.find(x => x.id === c.id);
+      if (!p) return '';
       subtotal += p.sellingPrice * c.qty;
       cost += p.costPrice * c.qty;
       return `<div class="flex justify-between items-center text-xs"><span>#${p.code} ${p.name} (${c.qty}x)</span><strong class="font-mono">₹${(p.sellingPrice * c.qty).toFixed(2)}</strong></div>`;
@@ -1243,12 +1344,19 @@ function processPOSCheckout() {
 
 /**
  * ==========================================================================
- * "FORCE" AI COPILOT // FRIENDLY STORE PAL VOICE
+ * "FORCE" AI COPILOT // REALISTIC STORE OPERATIONS SPECIALIST
  * ==========================================================================
  */
 function openForceModal() {
   document.getElementById('modal-force').classList.remove('hidden');
-  document.getElementById('force-user-input').focus();
+  document.getElementById('force-user-input')?.focus();
+}
+
+function sendQuickPrompt(promptText) {
+  const input = document.getElementById('force-user-input');
+  if (!input) return;
+  input.value = promptText;
+  handleSendForceChat();
 }
 
 function handleSendForceChat() {
@@ -1257,64 +1365,177 @@ function handleSendForceChat() {
   if (!txt) return;
 
   const feed = document.getElementById('force-chat-container');
-  feed.innerHTML += `<div class="chat-bubble user-bubble">${txt}</div>`;
+  feed.innerHTML += `<div class="chat-bubble user-bubble">${escapeHtml(txt)}</div>`;
   input.value = '';
+  feed.scrollTop = feed.scrollHeight;
 
   setTimeout(() => {
     let reply = "";
     const q = txt.toLowerCase();
 
-    // VIOLATION GUARDRAIL
-    const offTopic = ['weather', 'president', 'joke', 'movie', 'song', 'cricket', 'football', 'recipe', 'politics', 'sports'];
+    // Guardrail against off-topic inquiries
+    const offTopic = ['weather', 'president', 'joke', 'movie', 'song', 'cricket', 'football', 'recipe', 'politics', 'sports', 'crypto', 'bitcoin'];
     if (offTopic.some(w => q.includes(w))) {
       reply = `
-        <div class="text-red font-mono text-xs">
-          <strong>[VIOLATION / IRRELEVANT INQUIRY]</strong><br/>
-          Haha, good try my friend! As fun as that would be, I gotta stay locked on our store stocks, depletion stages, and profit calculations. Ask me about any 4-digit stock code or restocking advice!
+        <div class="text-secondary text-xs">
+          <strong>Store Copilot Guardrail:</strong><br/>
+          I'm calibrated specifically for <em>${appState.storeProfile.storeName}</em> inventory operations, depletion telemetry, POS cashier billing, and profit margins. Let's keep our shelves stocked and revenue flowing! Ask me about any 4-digit stock code, urgent depletion in hours, or restocking recommendations.
         </div>
       `;
     } else {
+      // 1. Stock Code Search (e.g. 1001, 2001, etc.)
       const match = q.match(/\b\d{4}\b/);
-      if (match) {
-        const prod = appState.products.find(p => p.code === match[0]);
-        if (!prod) {
+      const namedProd = !match ? appState.products.find(p => q.includes(p.name.toLowerCase().split(' ')[0])) : null;
+      const targetProd = match ? appState.products.find(p => p.code === match[0]) : namedProd;
+
+      if (match && !targetProd) {
+        reply = `
+          <div class="text-orange text-xs font-mono">
+            <strong>Stock #${match[0]} Not Found</strong><br/>
+            I searched our active registry of ${appState.products.length} products, but could not locate code <strong>#${match[0]}</strong>. Check the 4-digit code in the Inventory tab or register it as a new stock!
+          </div>
+        `;
+      } else if (targetProd) {
+        const m = computeMetrics(targetProd);
+        const depletionPhrase = m.isHours 
+          ? `<strong class="text-red">${m.hoursLeft} hours until empty</strong>` 
+          : `<strong>${m.timeFormatted} until empty</strong>`;
+
+        reply = `
+          <strong>Inventory Dossier: #${targetProd.code} - ${targetProd.name}</strong><br/>
+          <div class="mt-1.5 space-y-1 text-xs">
+            <div>&bull; <strong>Department:</strong> ${targetProd.category}</div>
+            <div>&bull; <strong>Physical Stock:</strong> ${targetProd.stock} units currently on shelf</div>
+            <div>&bull; <strong>Sales Velocity:</strong> ${m.dailyBurn} units/day (${targetProd.lastWeekSales} units last week)</div>
+            <div>&bull; <strong>Depletion Horizon:</strong> ${depletionPhrase} (${m.stageLabel})</div>
+            <div>&bull; <strong>Unit Economics:</strong> Retail ₹${targetProd.sellingPrice.toFixed(2)} | Buying ₹${targetProd.costPrice.toFixed(2)} | Profit ₹${m.profitPerUnit} (${m.profitMarginPct}%)</div>
+            <div>&bull; <strong>Weekly Profit Contribution:</strong> ₹${parseFloat(m.weeklyProfit).toLocaleString('en-IN')}</div>
+            ${m.stage === 'STAGE3' 
+              ? `<div class="p-2 rounded bg-red-500/10 border border-red-500/20 text-red mt-2">
+                   <strong>URGENT RESTOCK REQUIRED:</strong> Shelf runs out in ${m.timeFormatted}. Order at least <strong>+${m.unitsNeededToClearStage3} units</strong> immediately from ${targetProd.dealer?.name || 'wholesale partner'} (${targetProd.dealer?.phone || 'N/A'}) to avoid ₹${parseFloat(m.upcomingLoss7Days).toLocaleString('en-IN')} in lost profit!
+                 </div>`
+              : `<div class="text-green mt-1">Buffer is stable for the next ${m.timeFormatted}. Keep monitor active.</div>`}
+          </div>
+        `;
+      } else if (q.includes('hour') || q.includes('today') || q.includes('running out') || q.includes('deplet')) {
+        const hourItems = appState.products.filter(p => computeMetrics(p).numericDaysLeft < 1.0);
+        if (hourItems.length === 0) {
           reply = `
-            <div class="text-orange font-mono text-xs">
-              <strong>[NON-EXISTENT STOCK]</strong><br/>
-              Hey buddy, I checked our store depot and records, but could not find anything registered under stock code <strong>#${match[0]}</strong>. Double-check that 4-digit code for me!
+            <strong>Depletion Horizon Status:</strong><br/>
+            Great news! No stocks are depleting within the next 24 hours. The fastest-depleting stock is healthy enough to last past today.
+          `;
+        } else {
+          reply = `
+            <strong class="text-red">Depleting Within Hours Today (${hourItems.length} Stocks):</strong><br/>
+            <div class="mt-1.5 space-y-1.5 text-xs">
+              ${hourItems.map(p => {
+                const m = computeMetrics(p);
+                return `<div>&bull; <strong>#${p.code} ${p.name}</strong> &mdash; <span class="text-red font-bold font-mono">${m.hoursLeft}h left</span> (${p.stock} units in stock, burns ${m.dailyBurn}/day). Needs <strong>+${m.unitsNeededToClearStage3} units</strong>.</div>`;
+              }).join('')}
+            </div>
+            <div class="text-xs text-muted mt-2">Tip: Contact suppliers now or dispatch emergency purchase orders to prevent stockouts today.</div>
+          `;
+        }
+      } else if (q.includes('stage 3') || q.includes('critical') || q.includes('emergency') || q.includes('alert')) {
+        const stage3 = appState.products.filter(p => computeMetrics(p).stage === 'STAGE3');
+        if (stage3.length === 0) {
+          reply = `Zero stocks in Stage 3 Critical! All inventory lines have safe depletion horizons above 1.5 days.`;
+        } else {
+          let loss = 0;
+          stage3.forEach(p => loss += parseFloat(computeMetrics(p).upcomingLoss7Days));
+          reply = `
+            <strong class="text-red">Stage 3 Critical Alert (${stage3.length} Items &bull; ₹${loss.toLocaleString('en-IN')} at risk):</strong><br/>
+            <div class="mt-1.5 space-y-1 text-xs">
+              ${stage3.map(p => {
+                const m = computeMetrics(p);
+                return `<div>&bull; <strong>#${p.code} ${p.name}</strong>: ${m.timeFormatted} (${p.stock} left) &rarr; Restock <strong>+${m.unitsNeededToClearStage3} units</strong></div>`;
+              }).join('')}
             </div>
           `;
+        }
+      } else if (q.includes('loss') || q.includes('money') || q.includes('highest') || q.includes('risk')) {
+        const sortedLoss = [...appState.products].sort((a, b) => parseFloat(computeMetrics(b).upcomingLoss7Days) - parseFloat(computeMetrics(a).upcomingLoss7Days)).slice(0, 3);
+        reply = `
+          <strong>Top 3 Stocks with Highest Financial Risk if Unattended:</strong><br/>
+          <div class="mt-1.5 space-y-1.5 text-xs">
+            ${sortedLoss.map((p, idx) => {
+              const m = computeMetrics(p);
+              return `<div><strong>${idx + 1}. #${p.code} ${p.name}</strong><br/>
+                &nbsp;&nbsp;Potential 7-Day Loss: <span class="text-red font-mono font-bold">-₹${parseFloat(m.upcomingLoss7Days).toLocaleString('en-IN')}</span> &bull; Horizon: ${m.timeFormatted}</div>`;
+            }).join('')}
+          </div>
+        `;
+      } else if (q.includes('manager') || q.includes('duty') || q.includes('shift') || q.includes('who is')) {
+        const activeMgr = appState.managers.find(m => m.active) || appState.managers[0];
+        reply = `
+          <strong>Store Manager Roster:</strong><br/>
+          <div class="mt-1.5 text-xs space-y-1">
+            <div>&bull; <strong>Active On Duty:</strong> <span class="text-green font-bold">${activeMgr.name}</span> (${activeMgr.role})</div>
+            <div>&bull; <strong>Shift Hours:</strong> ${activeMgr.shift}</div>
+            <div>&bull; <strong>Direct Email:</strong> ${activeMgr.email}</div>
+            <div>&bull; <strong>Phone:</strong> ${activeMgr.phone}</div>
+            <div class="text-muted mt-1">Total registered managers on staff: ${appState.managers.length}. You can reassign active duty in the Store Profile & Roster panel.</div>
+          </div>
+        `;
+      } else if (q.includes('profit') || q.includes('margin') || q.includes('health') || q.includes('revenue') || q.includes('p&l')) {
+        let rev = 0, cogs = 0, profit = 0;
+        appState.products.forEach(p => {
+          const m = computeMetrics(p);
+          rev += p.lastWeekSales * p.sellingPrice;
+          cogs += p.lastWeekSales * p.costPrice;
+          profit += parseFloat(m.weeklyProfit);
+        });
+        const margin = rev > 0 ? ((profit / rev) * 100).toFixed(1) : "0.0";
+        reply = `
+          <strong>Store Financial Performance Summary:</strong><br/>
+          <div class="mt-1.5 text-xs space-y-1 font-mono">
+            <div>&bull; Weekly Gross Sales: <strong>₹${rev.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong></div>
+            <div>&bull; Buying Cost (COGS): ₹${cogs.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</div>
+            <div>&bull; Weekly Net Profit: <strong class="text-green">₹${profit.toLocaleString('en-IN', { maximumFractionDigits: 0 })}</strong></div>
+            <div>&bull; Store-wide Profit Margin: <strong class="text-green">${margin}%</strong></div>
+          </div>
+        `;
+      } else if (q.includes('restock') || q.includes('order') || q.includes('dealer') || q.includes('supplier')) {
+        const needsRestock = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 4.0);
+        if (needsRestock.length === 0) {
+          reply = `Inventory buffers are healthy across all departments! No urgent purchase orders required today.`;
         } else {
-          const m = computeMetrics(prod);
           reply = `
-            Hey pal! Here's the situation on <strong>#${prod.code} (${prod.name})</strong>:<br/>
-            &bull; We currently have <strong>${prod.stock} stocks left</strong> in storage.<br/>
-            &bull; At last week's pace (${prod.lastWeekSales}/week), we are selling about <strong>${m.dailyBurn} units per day</strong>.<br/>
-            &bull; That gives us approximately <strong>${m.daysLeft} days until empty</strong> (${m.stageLabel})!<br/>
-            &bull; Unit profit is <strong>₹${m.profitPerUnit} (${m.profitMarginPct}% margin)</strong>.<br/>
-            ${m.stage === 'STAGE3' ? `<strong class="text-red">Crucial Action:</strong> We need to restock at least <strong>+${m.unitsNeededToClearStage3} units</strong> immediately to clear Stage 3 and protect ₹${parseFloat(m.upcomingLoss7Days).toLocaleString('en-IN')} in profit!` : `Looking steady right now, friend!`}
+            <strong>Recommended Wholesale Purchase Orders:</strong><br/>
+            <div class="mt-1.5 text-xs space-y-1.5">
+              ${needsRestock.map(p => {
+                const m = computeMetrics(p);
+                return `<div>&bull; <strong>#${p.code} ${p.name}</strong> &mdash; Order <strong>+${m.unitsNeededToClearStage3} units</strong> from ${p.dealer?.name || 'Dealer'} (${p.dealer?.phone || 'N/A'})</div>`;
+              }).join('')}
+            </div>
           `;
         }
-      } else if (q.includes('stage 3') || q.includes('critical') || q.includes('empty') || q.includes('run out')) {
-        const stage3Items = appState.products.filter(p => computeMetrics(p).stage === 'STAGE3');
-        if (stage3Items.length === 0) {
-          reply = `Great news friend! None of our products are at Stage 3 critical status right now. All shelves are looking safe!`;
-        } else {
-          reply = `Heads up buddy! We've got <strong>${stage3Items.length} stocks</strong> at Stage 3 Critical:<br/>` +
-            stage3Items.map(p => {
-              const m = computeMetrics(p);
-              return `&bull; <strong>#${p.code} ${p.name}</strong> (${p.stock} units left &bull; Need <strong>+${m.unitsNeededToClearStage3} units</strong> to avoid stockout)`;
-            }).join('<br/>') +
-            `<br/><br/>Let's get those dealer orders sent out so we don't face empty shelf losses!`;
-        }
       } else {
-        reply = `Hey there friend! I'm tracking all <strong>${appState.products.length} stocks</strong> across our departments. You can ask me about any 4-digit stock code (like <em>1001</em>), check which stocks are about to run out, or ask how many units we need to restock!`;
+        reply = `
+          Hey! I'm your realistic store operations copilot. Here are quick things I can help you with right now:
+          <div class="mt-1.5 text-xs space-y-1">
+            <div>&bull; Type any 4-digit code (e.g. <code>1001</code>) for full unit metrics, burn rate, and hours left</div>
+            <div>&bull; Ask <em>"Which stocks run out in hours?"</em> for immediate depletion alerts</div>
+            <div>&bull; Ask <em>"Who is on duty?"</em> to check shift schedules</div>
+            <div>&bull; Ask <em>"Store financial health"</em> for weekly margins and revenue breakdown</div>
+          </div>
+        `;
       }
     }
 
-    feed.innerHTML += `<div class="chat-bubble bot-bubble"><span class="chat-speaker">FORCE // YOUR STORE PAL</span><div>${reply}</div></div>`;
+    feed.innerHTML += `
+      <div class="chat-bubble bot-bubble">
+        <span class="chat-speaker">FORCE // STORE OPERATIONS SPECIALIST</span>
+        <div>${reply}</div>
+      </div>
+    `;
     feed.scrollTop = feed.scrollHeight;
-  }, 200);
+    lucide.createIcons();
+  }, 220);
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
 // HELPERS

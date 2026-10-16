@@ -1,40 +1,30 @@
-# Pulse Guard // Store OS 4.0
+# Pulse Guard // Store OS 5.0
 
-> **Smart Multi-Departmental Store Stock Management & POS Reconciliation System**
+> **Smart Multi-Departmental Store Stock Management, Operations & POS Reconciliation System**
 
-![Pulse Guard Banner](https://img.shields.io/badge/Pulse%20Guard-Version%204.0-0284c7?style=for-the-badge)
+![Pulse Guard Banner](https://img.shields.io/badge/Pulse%20Guard-Version%205.0-0284c7?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Production%20Ready-16a34a?style=for-the-badge)
 ![Platform](https://img.shields.io/badge/Platform-HTML5%20%7C%20CSS3%20%7C%20JS-38bdf8?style=for-the-badge)
 
 ---
 
-## 🌟 Key Features
+## 🌟 What's New in Version 5.0
 
-- **3-Stage Low Stock Radar**:
-  - Automatically predicts depletion horizons based on rolling weekly sales velocity:
-    - **Stage 1 (Advisory)**: $\le 7$ days of inventory remaining.
-    - **Stage 2 (Warning)**: $\le 4$ days of inventory remaining.
-    - **Stage 3 (Critical)**: $\le 1.5$ days of inventory remaining (includes upcoming profit loss in ₹).
-- **Edit Button in Every Stock Box**:
-  - Direct edit access on every stock card and sales velocity box:
-    - 4-Digit Unique Stock Code
-    - Category & Product Name
-    - Number of Stocks & Sales Speed
-    - Buying Cost Price (₹) & Selling Retail Price (₹)
-    - Live Real-Time Profit & Margin Preview
-    - Wholesale Dealer Details (Name, Phone, Email)
-- **POS Cashier Billing Gateway**:
-  - Scan or enter 4-digit codes to add items to customer bill.
-  - Automatically calculates Subtotal, 5% GST, and Estimated Profit.
-  - One-click auto-deduction updates database stock levels instantly.
-- **Multiple Store Managers & Shift Schedule Roster**:
-  - Manage manager accounts with assigned shift timings (Morning, Evening, Night, General).
-  - One-click "Set On Duty" updates active store lead across the system.
-- **FORCE AI Copilot (Friendly Pal Voice)**:
-  - Real-time inventory buddy providing depletion guidance, Stage 3 restock math, and guardrails against irrelevant inquiries.
-- **Soothing Anti-Glare Daylight Mode & Charcoal Dark Mode**:
-  - Gentle pastel color palette (Sky Blue, Mint Sage, Butter Yellow, Peach, Coral Rose, Lavender).
-  - High-contrast, glare-free daylight mode for long shift readability.
+- **Edit & Delete in Every Stock Box**:
+  - Direct Edit and Delete actions present adjacent to each other on every stock box across category grids, sales velocity strips, alert cards, and the P&L ledger.
+  - Safe confirmation modal prevents accidental deletions while keeping database state synchronized.
+- **Enhanced Anti-Glare Daylight Mode**:
+  - Light mode overhauled with deep slate text (`#090d16`, `#1e293b`), high contrast ratios exceeding WCAG AAA, and a soothing, glare-free matte canvas (`#edf2f7`) for bright store environments.
+- **Exact Hours Depletion Telemetry**:
+  - Depletion horizons under 24 hours ($\le 1.0$ day) automatically format in exact hours (e.g. `18h`, `18h left`) instead of confusing decimal days.
+- **Admin & Accounts Profile Button**:
+  - Relocated from main sidebar links directly to the bottom profile slot, displaying live active manager shift status.
+- **Centered Manager Shift Schedule**:
+  - Email addresses and phone numbers positioned in dedicated, precisely centered chips with matching icons.
+- **Upgraded Realistic FORCE AI Copilot**:
+  - Real-time retail floor specialist intelligence with quick interactive prompt chips, financial risk prioritization, hours-based stockout forecasts, and staff shift lookups.
+- **Fluid Full-Width Layout**:
+  - Modern edge-to-edge layout filling 100% of available viewport width with smooth horizontal category scrollbars.
 
 ---
 
@@ -42,8 +32,8 @@
 
 ```text
 ├── index.html       # Single-page multi-view application structure & modals
-├── style.css        # Pastel design tokens, dark/light theme, glassmorphic layout
-├── app.js           # Inventory calculations, chart engine, POS auto-deduct, AI buddy
+├── style.css        # Pastel design tokens, anti-glare light/dark theme, responsive styles
+├── app.js           # Version 5.0 JS engine, hours telemetry, POS deduction, FORCE Copilot
 └── README.md        # Documentation & deployment guide
 ```
 
@@ -57,7 +47,8 @@
 3. Click **Save**. Your site will be published at:
    `https://cedrickborus2511.github.io/PulseGuard/`
 
-### Option 2: Netlify / Vercel
-1. Connect this GitHub repository directly to [Netlify](https://app.netlify.com) or [Vercel](https://vercel.com).
-2. Set build command to empty and publish directory to `./`.
-3. Deploy!
+### Option 2: Vercel
+1. Import this GitHub repository directly into [Vercel](https://vercel.com/new).
+2. Project name: `pulseguard` (or `pulse-guard`).
+3. Root Directory: `./` (leave default).
+4. Click **Deploy**. Vercel will deploy instantly with continuous deployment on every git push!
