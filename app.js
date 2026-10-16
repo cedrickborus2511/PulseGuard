@@ -1,10 +1,12 @@
 /**
- * PULSE GUARD // VERSION 5.0 JAVASCRIPT ENGINE
- * Soft Pastel Aesthetics & Anti-Glare High-Contrast Daylight Mode
+ * PULSE GUARD // VERSION 6.0 JAVASCRIPT ENGINE
+ * Soft Pastel Aesthetics & Anti-Glare Soothing Gray Canvas in Light Mode
  * Edit & Delete Stock Capabilities in Every Box (Code, Name, Price, Cost, Profit, Dealer)
  * Exact Hours Depletion Formatting for Horizons Under 24h (< 1.0 Day)
- * Centered Store Manager Roster & Shift Schedules
- * Upgraded Realistic FORCE AI Copilot with Quick Prompt Chips & Store Floor Intelligence
+ * Alert Feed PO Mailing Resolution: Shortage Problems Disappear When Solved via Mail
+ * Customizable Shift Schedules (Edit Button in Shift Roster with Freeform Working Hours)
+ * Non-Blocking Docked Side Grid for FORCE AI Copilot
+ * Real-Time Task Appreciation & Congratulations from FORCE Copilot
  * POS Auto-Stock Deduction & Reconciled Financials
  */
 
@@ -140,12 +142,12 @@ const SEED_CATEGORIES = [
   { name: "Pet & Pet Care", icon: "paw-print" }
 ];
 
-// Seed Managers with Shift Schedules
+// Seed Managers with Customizable Shift Schedules
 const SEED_MANAGERS = [
   {
     id: "mgr-1",
     name: "Alexander Vance",
-    role: "Senior Store Manager",
+    role: "Senior Store Operations Head",
     shift: "Morning Shift (08:00 AM - 04:00 PM)",
     shiftType: "morning",
     email: "alexander@pulseguard.store",
@@ -165,7 +167,7 @@ const SEED_MANAGERS = [
   {
     id: "mgr-3",
     name: "Rahul Verma",
-    role: "Inventory & Night Operations Lead",
+    role: "Night Logistics & Inventory Lead",
     shift: "Night Shift (11:00 PM - 07:00 AM)",
     shiftType: "night",
     email: "rahul@pulseguard.store",
@@ -182,6 +184,8 @@ let appState = {
   categories: [],
   managers: [],
   cart: [],
+  resolvedAlerts: {}, // { prodId: { id, code, name, shortageUnits, dealerName, dealerEmail, profitProtected, resolvedAt } }
+  forceDockOpen: true,
   homeFilter: 'ALL',
   selectedCategory: 'ALL',
   storeProfile: {
@@ -208,8 +212,15 @@ function initApp() {
   const savedProfile = localStorage.getItem('pulseguard_profile');
   if (savedProfile) appState.storeProfile = JSON.parse(savedProfile);
 
+  const savedResolved = localStorage.getItem('pulseguard_resolved_alerts');
+  if (savedResolved) appState.resolvedAlerts = JSON.parse(savedResolved);
+
   const savedTheme = localStorage.getItem('pulseguard_theme') || 'dark';
   applyTheme(savedTheme);
+
+  const savedDock = localStorage.getItem('pulseguard_force_dock');
+  appState.forceDockOpen = savedDock !== null ? savedDock === 'true' : true;
+  toggleForceDock(appState.forceDockOpen);
 
   renderAll();
   lucide.createIcons();
@@ -220,10 +231,12 @@ function saveState() {
   localStorage.setItem('pulseguard_categories', JSON.stringify(appState.categories));
   localStorage.setItem('pulseguard_managers', JSON.stringify(appState.managers));
   localStorage.setItem('pulseguard_profile', JSON.stringify(appState.storeProfile));
+  localStorage.setItem('pulseguard_resolved_alerts', JSON.stringify(appState.resolvedAlerts));
+  localStorage.setItem('pulseguard_force_dock', String(appState.forceDockOpen));
 }
 
 /**
- * THEME CONTROLLER (Dark & Anti-Glare High-Contrast Light Mode)
+ * THEME CONTROLLER (Dark Charcoal & Soothing Anti-Glare Gray Background)
  */
 function toggleTheme() {
   const next = appState.theme === 'dark' ? 'light' : 'dark';
@@ -350,6 +363,9 @@ function switchPage(pageId) {
     document.getElementById(`bottom-btn-${p}`)?.classList.toggle('active', p === pageId);
   });
 
+  // Toggle active class on sidebar profile button if page is admin
+  document.getElementById('sidebar-btn-admin')?.classList.toggle('active', pageId === 'admin');
+
   renderAll();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -365,7 +381,8 @@ function renderAll() {
 }
 
 function updateAlertBadge() {
-  const alertCount = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0).length;
+  // Only count unresolved alerts
+  const alertCount = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0 && !appState.resolvedAlerts[p.id]).length;
   const el = document.getElementById('badge-alert-count');
   if (el) el.innerText = alertCount;
 }
@@ -380,7 +397,7 @@ function renderActiveDutyHeader() {
 
 /**
  * ==========================================================================
- * PAGE 1: ALERTS FEED (Under 7 Days Depletion)
+ * PAGE 1: ALERTS FEED (Shortage Resolution by Email & Auto Disappear)
  * ==========================================================================
  */
 function renderHomePage() {
@@ -388,7 +405,98 @@ function renderHomePage() {
   if (!feed) return;
   feed.innerHTML = '';
 
-  let items = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0);
+  const resolvedKeys = Object.keys(appState.resolvedAlerts);
+  const resolvedCountEl = document.getElementById('count-resolved-alerts');
+  if (resolvedCountEl) resolvedCountEl.innerText = resolvedKeys.length;
+
+  // VIEW 1: RESOLVED ORDERS TAB
+  if (appState.homeFilter === 'RESOLVED') {
+    const heading = document.getElementById('alerts-heading-text');
+    const sub = document.getElementById('alerts-sub-text');
+    if (heading) heading.innerText = "Resolved Wholesale Orders";
+    if (sub) sub.innerText = "Stock shortages and depletion risks that have been tackled by mailing wholesale dealers.";
+
+    if (resolvedKeys.length === 0) {
+      feed.innerHTML = `
+        <div class="glass-card p-5 text-center text-muted font-mono">
+          <i data-lucide="check-circle" class="w-10 h-10 mx-auto mb-2 text-green"></i>
+          <div class="text-white font-bold text-sm">No Resolved Orders in Log</div>
+          <p class="text-xs mt-1">When an alert shortage is tackled via the Mail button, it logs here and clears from the active radar.</p>
+        </div>
+      `;
+      lucide.createIcons();
+      return;
+    }
+
+    resolvedKeys.forEach(id => {
+      const item = appState.resolvedAlerts[id];
+      const card = document.createElement('article');
+      card.className = "glass-card alert-card-shell";
+      card.id = `resolved-card-${id}`;
+
+      card.innerHTML = `
+        <div class="alert-card-header">
+          <div class="alert-card-identity">
+            <div class="alert-category-icon-box text-green">
+              <i data-lucide="check-check"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="alert-code-tag">#${item.code}</span>
+                <span class="text-muted text-xs">&bull;</span>
+                <span class="text-xs text-muted font-mono uppercase">${item.category}</span>
+              </div>
+              <h2 class="alert-prod-title">${item.name}</h2>
+            </div>
+          </div>
+          <span class="badge-healthy font-mono text-xs">RESOLVED VIA DEALER PO</span>
+        </div>
+
+        <div class="alert-card-body">
+          <div class="unattended-box border-green-500/30">
+            <div class="unattended-title text-green">
+              <i data-lucide="mail-check" class="w-4 h-4"></i>
+              <span>PURCHASE ORDER MAILED TO WHOLESALE DEALER:</span>
+            </div>
+            <p class="text-xs text-secondary">
+              Dispatched order for <strong>+${item.shortageUnits} units</strong> to <strong>${item.dealerName}</strong> (${item.dealerEmail} &bull; ${item.dealerPhone}).
+            </p>
+            <div class="unattended-loss-row">
+              <span class="text-green font-bold">Revenue Safeguarded:</span>
+              <strong class="text-green font-mono">₹${parseFloat(item.profitProtected).toLocaleString('en-IN')}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert-action-strip">
+          <div class="text-xs text-muted font-mono">
+            Mailed at ${item.resolvedAt}
+          </div>
+          <div class="action-strip-btns">
+            <button class="btn btn-ghost btn-sm" onclick="unresolveAlert('${id}')" title="Reopen this alert into active feed">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-cyan"></i>
+              <span>Reopen Alert</span>
+            </button>
+            <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${id}')">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
+              <span>Edit Stock</span>
+            </button>
+          </div>
+        </div>
+      `;
+      feed.appendChild(card);
+    });
+    lucide.createIcons();
+    return;
+  }
+
+  // VIEW 2: ACTIVE UNRESOLVED ALERTS
+  const heading = document.getElementById('alerts-heading-text');
+  const sub = document.getElementById('alerts-sub-text');
+  if (heading) heading.innerText = "Critical Low-Stock Alerts";
+  if (sub) sub.innerText = "Items depleting within 7 days based on sales velocity. Shortages under 24 hours are marked in exact hours. Mail dealer to mark problem solved and clear from feed.";
+
+  let items = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0 && !appState.resolvedAlerts[p.id]);
 
   if (appState.homeFilter === 'STAGE3') items = items.filter(p => computeMetrics(p).stage === 'STAGE3');
   else if (appState.homeFilter === 'STAGE2') items = items.filter(p => computeMetrics(p).stage === 'STAGE2');
@@ -405,9 +513,10 @@ function renderHomePage() {
       <div class="glass-card p-5 text-center text-muted font-mono">
         <i data-lucide="shield-check" class="w-10 h-10 mx-auto mb-2 text-green"></i>
         <div class="text-white font-bold text-sm">All Stock Depletion Lines Secured</div>
-        <p class="text-xs mt-1">Zero items running out within the 7-day window under current filter.</p>
+        <p class="text-xs mt-1">Zero unresolved shortages under current radar filter.</p>
       </div>
     `;
+    lucide.createIcons();
     return;
   }
 
@@ -417,6 +526,7 @@ function renderHomePage() {
     const m = computeMetrics(p);
     const card = document.createElement('article');
     card.className = "glass-card alert-card-shell";
+    card.id = `alert-card-${p.id}`;
 
     let problemText = "";
     if (m.stage === 'STAGE3') {
@@ -428,6 +538,8 @@ function renderHomePage() {
     } else {
       problemText = "Depot stock buffer has fallen below standard safety threshold. Escalates to critical warning if not replenished this week.";
     }
+
+    const shortageUnits = m.unitsNeededToClearStage3 > 0 ? m.unitsNeededToClearStage3 : 50;
 
     card.innerHTML = `
       <!-- Card Header -->
@@ -474,27 +586,33 @@ function renderHomePage() {
           </div>
         </div>
 
-        <!-- Tactical Resolution -->
+        <!-- Tactical Resolution: Shortage can be ordered by mailing dealer -->
         <div class="resolution-playbook-bar">
           <div class="resolution-playbook-text">
-            <strong class="text-cyan font-mono block text-xs">HOW TO TACKLE:</strong>
-            <span>Order minimum <strong>+${m.unitsNeededToClearStage3} units</strong> immediately to restore safety buffer.</span>
+            <strong class="text-cyan font-mono block text-xs">HOW TO TACKLE SHORTAGE:</strong>
+            <span>Shortage of <strong>+${shortageUnits} units</strong>. Mail dealer to order and resolve.</span>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="quickRestockPrompt('${p.id}', ${m.unitsNeededToClearStage3})">
-            +${m.unitsNeededToClearStage3} Restock
-          </button>
+          <div class="flex items-center gap-2">
+            <button class="btn btn-primary btn-sm" onclick="quickRestockPrompt('${p.id}', ${shortageUnits})">
+              +${shortageUnits} Restock
+            </button>
+            <button class="btn btn-success btn-sm font-bold" onclick="resolveAlertByMail('${p.id}')" title="Email dealer purchase order and resolve alert">
+              <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+              <span>Mail & Resolve</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- Professional Action Strip with Edit & Delete Stock Buttons -->
+      <!-- Professional Action Strip with Edit, Delete & Mail Buttons -->
       <div class="alert-action-strip">
         <div class="action-strip-btns">
           <button class="btn btn-ghost btn-sm" onclick="copyProductCode('${p.code}')" title="Copy Stock Code">
             <i data-lucide="copy" class="w-3.5 h-3.5 text-cyan"></i>
             <span>Copy Code</span>
           </button>
-          <button class="btn btn-ghost btn-sm" onclick="openDealerEmailPrompt('${p.id}')" title="Dispatch PO to Wholesale Dealer">
-            <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan"></i>
+          <button class="btn btn-ghost btn-sm text-green font-bold" onclick="resolveAlertByMail('${p.id}')" title="Dispatch PO via Email & Resolve Alert">
+            <i data-lucide="mail" class="w-3.5 h-3.5 text-green"></i>
             <span>Email Dealer</span>
           </button>
           <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Details For This Stock">
@@ -507,17 +625,84 @@ function renderHomePage() {
           </button>
         </div>
         <div class="text-xs font-mono text-muted">
-          Retail: ₹${p.sellingPrice.toFixed(2)} &bull; Cost: ₹${p.costPrice.toFixed(2)}
+          Dealer: ${p.dealer?.name || 'Direct Wholesale'} (${p.dealer?.email || 'orders@dealer.in'})
         </div>
       </div>
     `;
 
     feed.appendChild(card);
   });
+  lucide.createIcons();
+}
+
+/**
+ * ALERT SHORTAGE RESOLUTION VIA EMAIL DEALER
+ * When mailed, marks problem solved, removes card from feed, and triggers FORCE appreciation!
+ */
+function resolveAlertByMail(id) {
+  const prod = appState.products.find(p => p.id === id);
+  if (!prod) return;
+
+  const m = computeMetrics(prod);
+  const shortageUnits = m.unitsNeededToClearStage3 > 0 ? m.unitsNeededToClearStage3 : 50;
+
+  // Mark as resolved in state
+  appState.resolvedAlerts[id] = {
+    id: prod.id,
+    code: prod.code,
+    name: prod.name,
+    category: prod.category,
+    shortageUnits: shortageUnits,
+    dealerName: prod.dealer?.name || "Direct Wholesale Partner",
+    dealerEmail: prod.dealer?.email || "orders@dealer.in",
+    dealerPhone: prod.dealer?.phone || "+91-98000-00000",
+    profitProtected: m.upcomingLoss7Days,
+    resolvedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  };
+
+  saveState();
+
+  // Smooth fade-out animation on the card
+  const cardEl = document.getElementById(`alert-card-${id}`);
+  if (cardEl) {
+    cardEl.classList.add('anim-fade-out');
+    setTimeout(() => {
+      renderHomePage();
+      updateAlertBadge();
+    }, 320);
+  } else {
+    renderHomePage();
+    updateAlertBadge();
+  }
+
+  showToast(`Wholesale PO for +${shortageUnits} units mailed to ${prod.dealer?.name || 'Dealer'}! Problem marked as resolved & alert cleared from feed.`, "success");
+
+  // FORCE Copilot Real-Time Appreciation
+  triggerForceAppreciation('mail_dealer', {
+    code: prod.code,
+    name: prod.name,
+    units: shortageUnits,
+    dealer: prod.dealer?.name || "Wholesale Partner",
+    profit: m.upcomingLoss7Days
+  });
+}
+
+function unresolveAlert(id) {
+  const prod = appState.products.find(p => p.id === id);
+  delete appState.resolvedAlerts[id];
+  saveState();
+  renderHomePage();
+  updateAlertBadge();
+  showToast(`Alert for #${prod?.code || ''} reopened to active radar feed.`, "info");
 }
 
 function filterHomeAlerts(type) {
   appState.homeFilter = type;
+  
+  // Highlight active story pill
+  const pills = document.querySelectorAll('.stories-strip-wrapper .story-pill');
+  pills.forEach(pill => pill.classList.remove('active-pill'));
+
   renderHomePage();
   lucide.createIcons();
 }
@@ -612,9 +797,9 @@ function renderProductFocusedChart() {
   if (pnlChartInstance) pnlChartInstance.destroy();
 
   const isLight = appState.theme === 'light';
-  const labelColor = isLight ? '#090d16' : '#f1f5f9';
-  const tickColor = isLight ? '#1e293b' : '#94a3b8';
-  const gridColor = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.06)';
+  const labelColor = isLight ? '#050811' : '#f1f5f9';
+  const tickColor = isLight ? '#0f172a' : '#94a3b8';
+  const gridColor = isLight ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255,255,255,0.06)';
 
   pnlChartInstance = new Chart(ctx, {
     type: 'bar',
@@ -631,23 +816,23 @@ function renderProductFocusedChart() {
         ],
         backgroundColor: [
           isLight ? 'rgba(100, 116, 139, 0.45)' : 'rgba(148, 163, 184, 0.4)',
-          isLight ? 'rgba(2, 132, 199, 0.55)' : 'rgba(56, 189, 248, 0.45)',
+          isLight ? 'rgba(2, 106, 162, 0.6)' : 'rgba(56, 189, 248, 0.45)',
           isLight ? 'rgba(21, 128, 61, 0.65)' : 'rgba(74, 222, 128, 0.55)',
           isLight ? 'rgba(21, 128, 61, 0.85)' : 'rgba(74, 222, 128, 0.8)',
-          isLight ? 'rgba(220, 38, 38, 0.8)' : 'rgba(248, 113, 113, 0.7)'
+          isLight ? 'rgba(153, 27, 27, 0.8)' : 'rgba(248, 113, 113, 0.7)'
         ],
         borderColor: isLight 
-          ? ['#64748b', '#0284c7', '#15803d', '#15803d', '#dc2626']
+          ? ['#64748b', '#026aa2', '#15803d', '#15803d', '#991b1b']
           : ['#94a3b8', '#38bdf8', '#4ade80', '#4ade80', '#f87171'],
         borderWidth: 1.5,
-        borderRadius: 6
+        borderRadius: 8
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: labelColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: 700 } } }
+        legend: { labels: { color: labelColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: 800 } } }
       },
       scales: {
         x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11, weight: 700 } } },
@@ -865,6 +1050,7 @@ function saveWeeklySalesEntry(id) {
     saveState();
     renderAll();
     showToast(`Updated Last Week Sales for #${prod.code} to ${val} units/wk!`, "success");
+    triggerForceAppreciation('edit_stock', { code: prod.code, name: prod.name });
   }
 }
 
@@ -966,6 +1152,7 @@ function handleSaveEditedStock(e) {
   closeModal('modal-edit-stock');
   renderAll();
   showToast(`Successfully updated all parameters for Stock #${code} (${name})!`, "success");
+  triggerForceAppreciation('edit_stock', { code, name });
 }
 
 /**
@@ -998,14 +1185,19 @@ function executeDeleteStock() {
     return;
   }
 
-  // Remove from products and cart
+  const code = prod.code;
+  const name = prod.name;
+
+  // Remove from products and cart and resolved alerts
   appState.products = appState.products.filter(p => p.id !== targetId);
   appState.cart = appState.cart.filter(item => item.id !== targetId);
+  delete appState.resolvedAlerts[targetId];
 
   saveState();
   closeModal('modal-delete-confirm');
   renderAll();
-  showToast(`Stock #${prod.code} (${prod.name}) permanently removed from inventory.`, "info");
+  showToast(`Stock #${code} (${name}) permanently removed from inventory.`, "info");
+  triggerForceAppreciation('delete_stock', { code, name });
 }
 
 /**
@@ -1048,6 +1240,7 @@ function handleCreateProduct(e) {
   closeModal('modal-new-product');
   renderAll();
   showToast(`Stock #${code} (${name}) registered successfully!`, "success");
+  triggerForceAppreciation('new_stock', { code, name, category });
 }
 
 function openNewCategoryModal() {
@@ -1072,14 +1265,14 @@ function handleCreateCategory(e) {
 
 /**
  * ==========================================================================
- * PAGE 4: ADMIN / ACCOUNTS & MULTIPLE MANAGERS + SHIFTS
+ * PAGE 4: ADMIN / ACCOUNTS & MULTIPLE MANAGERS + CUSTOM SHIFTS
  * ==========================================================================
  */
 function renderAdminPage() {
   document.getElementById('admin-disp-store-name').innerText = appState.storeProfile.storeName;
   document.getElementById('admin-stat-skus').innerText = appState.products.length;
   document.getElementById('admin-stat-depts').innerText = appState.categories.length;
-  document.getElementById('admin-stat-alerts').innerText = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0).length;
+  document.getElementById('admin-stat-alerts').innerText = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0 && !appState.resolvedAlerts[p.id]).length;
 
   const mgrCountEl = document.getElementById('admin-stat-managers');
   if (mgrCountEl) mgrCountEl.innerText = appState.managers.length;
@@ -1123,9 +1316,10 @@ function renderManagersList() {
 
   container.innerHTML = appState.managers.map(m => {
     let shiftBadgeClass = "shift-general";
-    if (m.shift.toLowerCase().includes("morning")) shiftBadgeClass = "shift-morning";
-    else if (m.shift.toLowerCase().includes("evening")) shiftBadgeClass = "shift-evening";
-    else if (m.shift.toLowerCase().includes("night")) shiftBadgeClass = "shift-night";
+    const sLower = m.shift.toLowerCase();
+    if (sLower.includes("morning")) shiftBadgeClass = "shift-morning";
+    else if (sLower.includes("evening")) shiftBadgeClass = "shift-evening";
+    else if (sLower.includes("night")) shiftBadgeClass = "shift-night";
 
     const initials = m.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
 
@@ -1163,7 +1357,7 @@ function renderManagersList() {
             <span>${m.active ? 'Active On Duty' : 'Off Shift'}</span>
           </div>
 
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 flex-wrap">
             ${!m.active ? `
               <button class="btn btn-ghost btn-sm" onclick="setActiveManager('${m.id}')" title="Set this manager as currently active on duty">
                 Set On Duty
@@ -1171,6 +1365,11 @@ function renderManagersList() {
             ` : `
               <span class="text-xs text-green font-mono font-bold">Current</span>
             `}
+            <!-- EDIT SHIFT BUTTON (Customizable rather than pre-loaded!) -->
+            <button class="btn btn-ghost btn-sm" onclick="openEditManagerModal('${m.id}')" title="Edit Manager & Custom Shift Schedule">
+              <i data-lucide="calendar" class="w-3.5 h-3.5 text-cyan"></i>
+              <span>Edit Shift</span>
+            </button>
             ${appState.managers.length > 1 ? `
               <button class="btn btn-ghost btn-sm text-red" onclick="deleteManager('${m.id}')" title="Remove this manager account">
                 <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
@@ -1184,6 +1383,7 @@ function renderManagersList() {
 }
 
 function openAddManagerModal() {
+  document.getElementById('inp-mgr-shift').value = "Morning Shift (08:00 AM - 04:00 PM)";
   document.getElementById('modal-add-manager').classList.remove('hidden');
 }
 
@@ -1192,17 +1392,17 @@ function handleAddManager(e) {
   const name = document.getElementById('inp-mgr-name').value.trim();
   const email = document.getElementById('inp-mgr-email').value.trim();
   const phone = document.getElementById('inp-mgr-phone').value.trim();
-  const role = document.getElementById('inp-mgr-role').value;
-  const shift = document.getElementById('inp-mgr-shift').value;
+  const role = document.getElementById('inp-mgr-role').value.trim();
+  const shift = document.getElementById('inp-mgr-shift').value.trim();
 
-  if (!name || !email) return showToast("Name and email are required", "error");
+  if (!name || !email || !shift) return showToast("Name, email, and shift timings are required", "error");
 
   const newMgr = {
     id: `mgr-${Date.now()}`,
     name,
     email,
     phone: phone || "+91-98000-00000",
-    role,
+    role: role || "Shift Supervisor",
     shift,
     active: false
   };
@@ -1211,7 +1411,57 @@ function handleAddManager(e) {
   saveState();
   closeModal('modal-add-manager');
   renderAll();
-  showToast(`Manager account created for ${name} (${role})!`, "success");
+  showToast(`Manager account created for ${name} with shift: ${shift}!`, "success");
+  triggerForceAppreciation('shift_updated', { managerName: name, shift });
+}
+
+function openEditManagerModal(id) {
+  const mgr = appState.managers.find(m => m.id === id);
+  if (!mgr) return showToast("Manager not found", "error");
+
+  document.getElementById('edit-mgr-id').value = mgr.id;
+  document.getElementById('edit-mgr-name').value = mgr.name;
+  document.getElementById('edit-mgr-email').value = mgr.email;
+  document.getElementById('edit-mgr-phone').value = mgr.phone;
+  document.getElementById('edit-mgr-role').value = mgr.role;
+  document.getElementById('edit-mgr-shift').value = mgr.shift;
+
+  document.getElementById('modal-edit-manager').classList.remove('hidden');
+}
+
+function handleSaveEditedManager(e) {
+  e.preventDefault();
+  const id = document.getElementById('edit-mgr-id').value;
+  const name = document.getElementById('edit-mgr-name').value.trim();
+  const email = document.getElementById('edit-mgr-email').value.trim();
+  const phone = document.getElementById('edit-mgr-phone').value.trim();
+  const role = document.getElementById('edit-mgr-role').value.trim();
+  const shift = document.getElementById('edit-mgr-shift').value.trim();
+
+  const mgr = appState.managers.find(m => m.id === id);
+  if (!mgr) return showToast("Manager record not found", "error");
+
+  mgr.name = name;
+  mgr.email = email;
+  mgr.phone = phone;
+  mgr.role = role;
+  mgr.shift = shift;
+
+  saveState();
+  closeModal('modal-edit-manager');
+  renderAll();
+  showToast(`Custom shift schedule saved for ${name} (${shift})!`, "success");
+  triggerForceAppreciation('shift_updated', { managerName: name, shift });
+}
+
+function setShiftPreset(target, value) {
+  if (target === 'edit') {
+    const el = document.getElementById('edit-mgr-shift');
+    if (el) el.value = value;
+  } else if (target === 'add') {
+    const el = document.getElementById('inp-mgr-shift');
+    if (el) el.value = value;
+  }
 }
 
 function setActiveManager(id) {
@@ -1328,31 +1578,83 @@ function clearCart() {
 }
 
 function processPOSCheckout() {
+  let totalBilled = 0, costBilled = 0, totalItems = 0;
+
   appState.cart.forEach(c => {
     const p = appState.products.find(x => x.id === c.id);
     if (p) {
       p.stock = Math.max(0, p.stock - c.qty);
       p.lastWeekSales = parseFloat((p.lastWeekSales + c.qty * 0.5).toFixed(1));
+      totalBilled += p.sellingPrice * c.qty;
+      costBilled += p.costPrice * c.qty;
+      totalItems += c.qty;
     }
   });
+
+  const netProfit = (totalBilled - costBilled).toFixed(2);
+  const totalWithTax = (totalBilled * 1.05).toFixed(2);
+
   appState.cart = [];
   saveState();
   closeModal('modal-billing');
   renderAll();
   showToast("Bill completed! Stocks automatically deducted from inventory.", "success");
+
+  // FORCE Copilot Appreciation for completing checkout!
+  triggerForceAppreciation('pos_checkout', {
+    total: totalWithTax,
+    profit: netProfit,
+    itemsCount: totalItems
+  });
 }
 
 /**
  * ==========================================================================
- * "FORCE" AI COPILOT // REALISTIC STORE OPERATIONS SPECIALIST
+ * FORCE COPILOT DOCKED SIDE GRID (Non-Blocking Companion)
  * ==========================================================================
  */
-function openForceModal() {
-  document.getElementById('modal-force').classList.remove('hidden');
-  document.getElementById('force-user-input')?.focus();
+function toggleForceDock(forceState) {
+  const dock = document.getElementById('force-side-dock');
+  const pill = document.getElementById('force-dock-pill');
+  const navBtn = document.getElementById('sidebar-btn-force');
+
+  if (forceState !== undefined) {
+    appState.forceDockOpen = forceState;
+  } else {
+    appState.forceDockOpen = !appState.forceDockOpen;
+  }
+
+  if (appState.forceDockOpen) {
+    dock?.classList.remove('collapsed');
+    pill?.classList.add('hidden');
+    navBtn?.classList.add('active');
+  } else {
+    dock?.classList.add('collapsed');
+    pill?.classList.remove('hidden');
+    navBtn?.classList.remove('active');
+  }
+
+  saveState();
+}
+
+function clearForceChat() {
+  const feed = document.getElementById('force-chat-container');
+  if (feed) {
+    feed.innerHTML = `
+      <div class="chat-bubble bot-bubble">
+        <span class="chat-speaker">FORCE // STORE OPERATIONS SPECIALIST</span>
+        <p>Chat thread refreshed! I'm monitoring store inventory and cash flows live alongside your workspace. Depletions under 24 hours are tracked in exact hours. As you resolve shortages, restock, or bill, I'll track your wins in real time!</p>
+      </div>
+    `;
+    lucide.createIcons();
+  }
 }
 
 function sendQuickPrompt(promptText) {
+  // Ensure side dock is open
+  if (!appState.forceDockOpen) {
+    toggleForceDock(true);
+  }
   const input = document.getElementById('force-user-input');
   if (!input) return;
   input.value = promptText;
@@ -1418,11 +1720,11 @@ function handleSendForceChat() {
           </div>
         `;
       } else if (q.includes('hour') || q.includes('today') || q.includes('running out') || q.includes('deplet')) {
-        const hourItems = appState.products.filter(p => computeMetrics(p).numericDaysLeft < 1.0);
+        const hourItems = appState.products.filter(p => computeMetrics(p).numericDaysLeft < 1.0 && !appState.resolvedAlerts[p.id]);
         if (hourItems.length === 0) {
           reply = `
             <strong>Depletion Horizon Status:</strong><br/>
-            Great news! No stocks are depleting within the next 24 hours. The fastest-depleting stock is healthy enough to last past today.
+            Great news! No unresolved stocks are depleting within the next 24 hours. All shelves have safe buffers past today.
           `;
         } else {
           reply = `
@@ -1430,16 +1732,15 @@ function handleSendForceChat() {
             <div class="mt-1.5 space-y-1.5 text-xs">
               ${hourItems.map(p => {
                 const m = computeMetrics(p);
-                return `<div>&bull; <strong>#${p.code} ${p.name}</strong> &mdash; <span class="text-red font-bold font-mono">${m.hoursLeft}h left</span> (${p.stock} units in stock, burns ${m.dailyBurn}/day). Needs <strong>+${m.unitsNeededToClearStage3} units</strong>.</div>`;
+                return `<div>&bull; <strong>#${p.code} ${p.name}</strong> &mdash; <span class="text-red font-bold font-mono">${m.hoursLeft}h left</span> (${p.stock} units in stock). Shortage of <strong>+${m.unitsNeededToClearStage3} units</strong>. Tap "Mail & Resolve" to tackle it!</div>`;
               }).join('')}
             </div>
-            <div class="text-xs text-muted mt-2">Tip: Contact suppliers now or dispatch emergency purchase orders to prevent stockouts today.</div>
           `;
         }
       } else if (q.includes('stage 3') || q.includes('critical') || q.includes('emergency') || q.includes('alert')) {
-        const stage3 = appState.products.filter(p => computeMetrics(p).stage === 'STAGE3');
+        const stage3 = appState.products.filter(p => computeMetrics(p).stage === 'STAGE3' && !appState.resolvedAlerts[p.id]);
         if (stage3.length === 0) {
-          reply = `Zero stocks in Stage 3 Critical! All inventory lines have safe depletion horizons above 1.5 days.`;
+          reply = `Zero active stocks in Stage 3 Critical! All inventory lines have safe depletion horizons above 1.5 days.`;
         } else {
           let loss = 0;
           stage3.forEach(p => loss += parseFloat(computeMetrics(p).upcomingLoss7Days));
@@ -1448,13 +1749,16 @@ function handleSendForceChat() {
             <div class="mt-1.5 space-y-1 text-xs">
               ${stage3.map(p => {
                 const m = computeMetrics(p);
-                return `<div>&bull; <strong>#${p.code} ${p.name}</strong>: ${m.timeFormatted} (${p.stock} left) &rarr; Restock <strong>+${m.unitsNeededToClearStage3} units</strong></div>`;
+                return `<div>&bull; <strong>#${p.code} ${p.name}</strong>: ${m.timeFormatted} (${p.stock} left) &rarr; Shortage of <strong>+${m.unitsNeededToClearStage3} units</strong></div>`;
               }).join('')}
             </div>
           `;
         }
       } else if (q.includes('loss') || q.includes('money') || q.includes('highest') || q.includes('risk')) {
-        const sortedLoss = [...appState.products].sort((a, b) => parseFloat(computeMetrics(b).upcomingLoss7Days) - parseFloat(computeMetrics(a).upcomingLoss7Days)).slice(0, 3);
+        const sortedLoss = [...appState.products]
+          .filter(p => !appState.resolvedAlerts[p.id])
+          .sort((a, b) => parseFloat(computeMetrics(b).upcomingLoss7Days) - parseFloat(computeMetrics(a).upcomingLoss7Days))
+          .slice(0, 3);
         reply = `
           <strong>Top 3 Stocks with Highest Financial Risk if Unattended:</strong><br/>
           <div class="mt-1.5 space-y-1.5 text-xs">
@@ -1471,10 +1775,10 @@ function handleSendForceChat() {
           <strong>Store Manager Roster:</strong><br/>
           <div class="mt-1.5 text-xs space-y-1">
             <div>&bull; <strong>Active On Duty:</strong> <span class="text-green font-bold">${activeMgr.name}</span> (${activeMgr.role})</div>
-            <div>&bull; <strong>Shift Hours:</strong> ${activeMgr.shift}</div>
+            <div>&bull; <strong>Shift Timing:</strong> ${activeMgr.shift}</div>
             <div>&bull; <strong>Direct Email:</strong> ${activeMgr.email}</div>
             <div>&bull; <strong>Phone:</strong> ${activeMgr.phone}</div>
-            <div class="text-muted mt-1">Total registered managers on staff: ${appState.managers.length}. You can reassign active duty in the Store Profile & Roster panel.</div>
+            <div class="text-muted mt-1">Total registered managers on staff: ${appState.managers.length}. You can customize their shift schedules in the Store Profile & Roster panel!</div>
           </div>
         `;
       } else if (q.includes('profit') || q.includes('margin') || q.includes('health') || q.includes('revenue') || q.includes('p&l')) {
@@ -1496,7 +1800,7 @@ function handleSendForceChat() {
           </div>
         `;
       } else if (q.includes('restock') || q.includes('order') || q.includes('dealer') || q.includes('supplier')) {
-        const needsRestock = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 4.0);
+        const needsRestock = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 4.0 && !appState.resolvedAlerts[p.id]);
         if (needsRestock.length === 0) {
           reply = `Inventory buffers are healthy across all departments! No urgent purchase orders required today.`;
         } else {
@@ -1534,6 +1838,81 @@ function handleSendForceChat() {
   }, 220);
 }
 
+/**
+ * FORCE COPILOT TASK APPRECIATION & CONGRATULATIONS ENGINE
+ * Proactively congratulates the user in the side grid upon completing key tasks!
+ */
+function triggerForceAppreciation(taskType, data = {}) {
+  let title = "CONGRATULATIONS & APPRECIATION!";
+  let message = "";
+  let badgeIcon = "sparkles";
+
+  switch (taskType) {
+    case 'mail_dealer':
+      badgeIcon = "mail-check";
+      title = "🎉 PROBLEM SOLVED & SHORTAGE COVERED!";
+      message = `Outstanding work! You just dispatched an official PO to wholesale partner <strong>${data.dealer}</strong> for <strong>#${data.code} (${data.name})</strong> covering the shortage of <strong>+${data.units} units</strong>.<br/><br/>You successfully safeguarded <strong class="text-green">₹${parseFloat(data.profit).toLocaleString('en-IN')}</strong> in upcoming store profits! The issue has been marked resolved and cleared from the live feed. Stellar store management!`;
+      break;
+
+    case 'restock':
+      badgeIcon = "shield-check";
+      title = "⭐ SHELF DEFENSE RESTORED!";
+      message = `Brilliant move! You just replenished <strong>+${data.qty} physical units</strong> for <strong>#${data.code} (${data.name})</strong>. Depletion stage cleared and customer stockout risk eliminated!`;
+      break;
+
+    case 'pos_checkout':
+      badgeIcon = "receipt";
+      title = "🧾 CASHIER REVENUE LOCKED IN!";
+      message = `Cha-ching! Successfully finalized customer invoice for <strong>₹${data.total}</strong> across <strong>${data.itemsCount} items</strong>.<br/><br/>You secured <strong class="text-green">+₹${data.profit}</strong> in net gross profit for our store account, and physical stocks were auto-deducted!`;
+      break;
+
+    case 'shift_updated':
+      badgeIcon = "clock";
+      title = "⏱️ ROSTER & SHIFT DIALED IN!";
+      message = `Superb scheduling! Custom shift hours for <strong>${data.managerName}</strong> updated to <strong>${data.shift}</strong>. Precision shifts mean zero coverage gaps on the retail floor!`;
+      break;
+
+    case 'edit_stock':
+      badgeIcon = "sliders";
+      title = "💼 INVENTORY TUNED TO PERFECTION!";
+      message = `Great attention to detail! All operational parameters for <strong>#${data.code} (${data.name})</strong> were verified and updated. Clean inventory data drives maximum profit margins!`;
+      break;
+
+    case 'delete_stock':
+      badgeIcon = "trash-2";
+      title = "🧹 INVENTORY STREAMLINED!";
+      message = `Cleaned up! Decommissioned <strong>#${data.code} (${data.name})</strong> from active stock shelves and ledger records.`;
+      break;
+
+    case 'new_stock':
+      badgeIcon = "package-plus";
+      title = "📦 NEW PRODUCT ON SHELVES!";
+      message = `Awesome addition! Registered <strong>#${data.code} (${data.name})</strong> in the ${data.category} department. Let's start moving those units!`;
+      break;
+  }
+
+  // Append appreciation message to chat thread
+  const feed = document.getElementById('force-chat-container');
+  if (feed) {
+    feed.innerHTML += `
+      <div class="chat-bubble bot-bubble appreciation-bubble">
+        <div class="flex items-center gap-1.5 text-green font-bold text-xs mb-1">
+          <i data-lucide="${badgeIcon}" class="w-3.5 h-3.5"></i>
+          <span>${title}</span>
+        </div>
+        <div>${message}</div>
+      </div>
+    `;
+    feed.scrollTop = feed.scrollHeight;
+    lucide.createIcons();
+  }
+
+  // Ensure side dock is visible so the user sees FORCE AI's celebration!
+  if (!appState.forceDockOpen) {
+    toggleForceDock(true);
+  }
+}
+
 function escapeHtml(str) {
   return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
@@ -1555,13 +1934,8 @@ function quickRestockPrompt(id, qty) {
     saveState();
     renderAll();
     showToast(`Restocked +${qty} units for #${p.code} (${p.name})! Stage 3 stockout avoided.`, "success");
+    triggerForceAppreciation('restock', { code: p.code, name: p.name, qty });
   }
-}
-
-function openDealerEmailPrompt(id) {
-  const p = appState.products.find(x => x.id === id);
-  if (!p) return;
-  showToast(`Wholesale order notice drafted to ${p.dealer?.name || 'Dealer'} (${p.dealer?.email || 'N/A'})!`, "success");
 }
 
 let toastTimer;
