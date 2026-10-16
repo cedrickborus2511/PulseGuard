@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pulse Guard // Multi-Departmental Store Stock & Alert OS</title>
+  
+  <!-- Plus Jakarta Sans & JetBrains Mono Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Chart.js 2D Graphics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="theme-dark">
+
+  <div class="app-layout">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside class="sidebar-shell" id="main-sidebar">
+      <div class="sidebar-header">
+        <!-- Minimalist Shield Vector Logo -->
+        <div class="brand-logo-wrap" onclick="switchPage('home')">
+          <div class="minimal-logo-icon">
+            <svg viewBox="0 0 32 32" fill="none" class="pulse-shield-svg">
+              <path d="M16 3L5 7.5V14.5C5 21.5 9.7 27.9 16 29.5C22.3 27.9 27 21.5 27 14.5V7.5L16 3Z" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M8 16H12L14 11L18 21L20 16H24" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+          <div class="brand-text-block">
+            <span class="brand-name">PULSE<span class="brand-accent">GUARD</span></span>
+            <span class="brand-tagline">STORE OS 4.0</span>
+          </div>
+        </div>
+
+        <!-- Dark / Light Mode Switcher -->
+        <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light or Dark Theme">
+          <div class="flex items-center gap-2">
+            <i data-lucide="sun" class="sun-icon"></i>
+            <i data-lucide="moon" class="moon-icon"></i>
+            <span class="theme-toggle-label" id="theme-label-text">Dark Mode</span>
+          </div>
+          <span class="theme-micro-pill">Theme</span>
+        </button>
+      </div>
+
+      <!-- MAIN NAVIGATION COLUMN -->
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" id="sidebar-btn-home" onclick="switchPage('home')">
+          <i data-lucide="activity" class="nav-icon"></i>
+          <span class="nav-text">Alerts Feed</span>
+          <span class="nav-counter-badge" id="badge-alert-count">0</span>
+        </button>
+
+        <button class="nav-btn" id="sidebar-btn-insights" onclick="switchPage('insights')">
+          <i data-lucide="bar-chart-3" class="nav-icon"></i>
+          <span class="nav-text">Profit & Loss</span>
+        </button>
+
+        <button class="nav-btn" id="sidebar-btn-products" onclick="switchPage('products')">
+          <i data-lucide="boxes" class="nav-icon"></i>
+          <span class="nav-text">Stock List</span>
+        </button>
+
+        <button class="nav-btn" id="sidebar-btn-admin" onclick="switchPage('admin')">
+          <i data-lucide="shield-check" class="nav-icon"></i>
+          <span class="nav-text">Admin & Accounts</span>
+        </button>
+
+        <button class="nav-btn billing-nav-btn" onclick="openBillingModal()">
+          <i data-lucide="receipt" class="nav-icon"></i>
+          <span class="nav-text">POS Billing</span>
+          <span class="nav-micro-tag">Auto-Deduct</span>
+        </button>
+
+        <!-- FORCE COPILOT BUTTON (Located just below POS Billing, visually connected) -->
+        <button class="nav-btn force-copilot-nav-btn" onclick="openForceModal()">
+          <div class="copilot-pulse-dot"></div>
+          <span class="nav-text font-bold">FORCE Copilot</span>
+          <span class="copilot-friend-tag">Friend Mode</span>
+        </button>
+      </nav>
+
+      <!-- SIDEBAR FOOTER (Active Manager On Duty) -->
+      <div class="sidebar-bottom">
+        <div class="manager-duty-card" onclick="switchPage('admin')">
+          <div class="duty-avatar">AV</div>
+          <div class="duty-details">
+            <span class="duty-name" id="sidebar-active-manager-name">Alexander Vance</span>
+            <span class="duty-shift" id="sidebar-active-manager-shift">Morning Shift</span>
+          </div>
+          <span class="status-online-dot" title="Active on duty"></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN VIEWPORT CONTAINER -->
+    <main class="main-viewport">
+      
+      <!-- Top Header for Mobile & Compact Screens -->
+      <header class="mobile-top-bar">
+        <div class="flex items-center gap-2" onclick="switchPage('home')">
+          <svg viewBox="0 0 32 32" fill="none" class="w-6 h-6">
+            <path d="M16 3L5 7.5V14.5C5 21.5 9.7 27.9 16 29.5C22.3 27.9 27 21.5 27 14.5V7.5L16 3Z" stroke="#7dd3fc" stroke-width="2"/>
+            <path d="M8 16H12L14 11L18 21L20 16H24" stroke="#ffffff" stroke-width="2"/>
+          </svg>
+          <span class="brand-name">PULSE<span class="brand-accent">GUARD</span></span>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="icon-action-btn" onclick="toggleTheme()" title="Toggle Theme">
+            <i data-lucide="sun" class="sun-icon"></i>
+            <i data-lucide="moon" class="moon-icon"></i>
+          </button>
+          <button class="icon-action-btn" onclick="openBillingModal()"><i data-lucide="receipt"></i></button>
+          <button class="icon-action-btn" onclick="openForceModal()"><i data-lucide="message-square"></i></button>
+        </div>
+      </header>
+
+      <!-- ========================================================= -->
+      <!-- PAGE 1: ALERTS FEED (Stocks running out within 1 week) -->
+      <!-- ========================================================= -->
+      <section id="page-home" class="page-pane active">
+        
+        <!-- Story-Style Filter Pills (Clean pastel tags, no emojis) -->
+        <div class="stories-strip-wrapper">
+          <div class="story-pill active-pill" onclick="filterHomeAlerts('ALL')">
+            <div class="story-icon-ring ring-all"><i data-lucide="layers"></i></div>
+            <span class="story-pill-text">All Alerts (7 Days)</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeAlerts('STAGE3')">
+            <div class="story-icon-ring ring-s3"><i data-lucide="alert-octagon"></i></div>
+            <span class="story-pill-text">Stage 3 Critical</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeAlerts('STAGE2')">
+            <div class="story-icon-ring ring-s2"><i data-lucide="alert-triangle"></i></div>
+            <span class="story-pill-text">Stage 2 Warning</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeAlerts('STAGE1')">
+            <div class="story-icon-ring ring-s1"><i data-lucide="bell"></i></div>
+            <span class="story-pill-text">Stage 1 Advisory</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeByDept('Stationeries')">
+            <div class="story-icon-ring ring-cat"><i data-lucide="edit-3"></i></div>
+            <span class="story-pill-text">Stationeries</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeByDept('Electronics')">
+            <div class="story-icon-ring ring-cat"><i data-lucide="cpu"></i></div>
+            <span class="story-pill-text">Electronics</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeByDept('Decors')">
+            <div class="story-icon-ring ring-cat"><i data-lucide="lamp"></i></div>
+            <span class="story-pill-text">Decors</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeByDept('Medicals & Drugs')">
+            <div class="story-icon-ring ring-cat"><i data-lucide="activity"></i></div>
+            <span class="story-pill-text">Medicals & Drugs</span>
+          </div>
+
+          <div class="story-pill" onclick="filterHomeByDept('Pet & Pet Care')">
+            <div class="story-icon-ring ring-cat"><i data-lucide="paw-print"></i></div>
+            <span class="story-pill-text">Pet & Pet Care</span>
+          </div>
+        </div>
+
+        <!-- Hero Watchdog Banner (Pastel & clean plain English) -->
+        <div class="glass-card feed-hero-banner">
+          <div class="feed-hero-content">
+            <div class="telemetry-live-pill">
+              <span class="live-pulse-dot"></span>
+              <span class="telemetry-text">7-DAY LOW STOCK RADAR</span>
+            </div>
+            <h1 class="hero-headline">Low Stock Alerts Feed</h1>
+            <p class="hero-subhead">
+              We check your weekly sales speed to predict exactly when stocks will run out. Review the 3 alert stages below to prevent empty shelves and save profits in Rupees (₹).
+            </p>
+          </div>
+          <div class="loss-telemetry-badge">
+            <span class="loss-badge-label">Money Lost If Not Restocked</span>
+            <span class="loss-badge-figure" id="home-total-loss">₹0</span>
+          </div>
+        </div>
+
+        <!-- Feed Posts Stream (Professional, no like/comments, includes edit button) -->
+        <div class="feed-posts-stream" id="home-alerts-feed">
+          <!-- Populated dynamically -->
+        </div>
+
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- PAGE 2: P&L INSIGHTS (Per Product Graph in ₹ & %) -->
+      <!-- ========================================================= -->
+      <section id="page-insights" class="page-pane">
+        <div class="section-title-wrap">
+          <div>
+            <span class="pastel-badge-tag">FINANCIAL DASHBOARD</span>
+            <h1 class="pastel-heading">Profit & Loss Per Stock</h1>
+            <p class="pastel-sub">See how much profit each stock brings in and check how much money we risk losing if stocks run out.</p>
+          </div>
+          <div class="kpi-mini-cluster">
+            <div class="glass-card kpi-cell border-l-green">
+              <span class="kpi-cell-label">Realized Weekly Profit</span>
+              <span class="kpi-cell-val text-green" id="ins-total-profit">₹0</span>
+              <span class="kpi-cell-sub" id="ins-overall-margin">Margin: 0%</span>
+            </div>
+            <div class="glass-card kpi-cell border-l-red">
+              <span class="kpi-cell-label">Money Lost If Stocks Run Out</span>
+              <span class="kpi-cell-val text-red" id="ins-total-loss">₹0</span>
+              <span class="kpi-cell-sub">Stage 2 & 3 Stocks</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Product Selector Dropdown for Focused Chart -->
+        <div class="glass-card p-5 mb-5">
+          <div class="chart-controls-bar">
+            <label for="pnl-product-select" class="chart-selector-label">
+              <i data-lucide="bar-chart-2" class="w-4 h-4 text-cyan"></i>
+              <span>Choose Stock to View Profit & Loss Chart:</span>
+            </label>
+            <select id="pnl-product-select" class="form-select font-mono" onchange="renderProductFocusedChart()">
+              <!-- Options populated dynamically -->
+            </select>
+          </div>
+
+          <!-- Chart.js 2D Canvas -->
+          <div class="chart-canvas-container">
+            <canvas id="product-pnl-canvas"></canvas>
+          </div>
+
+          <!-- Focused Stock KPIs in ₹ and % -->
+          <div class="focused-kpi-grid" id="focused-metrics-container">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Full Portfolio Ledger Cards with Edit option -->
+        <div class="glass-card p-5">
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-white-5">
+            <div class="flex items-center gap-2">
+              <i data-lucide="layers" class="w-4 h-4 text-cyan"></i>
+              <h3 class="font-bold text-white text-sm uppercase tracking-wider">All Stocks Profit & Margin Overview</h3>
+            </div>
+            <span class="font-mono text-xs text-muted">Sorted by 4-digit code</span>
+          </div>
+
+          <div class="ledger-cards-grid" id="all-products-pnl-grid">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- PAGE 3: STOCK LIST & LAST WEEK SALES (TOP TO BOTTOM) -->
+      <!-- ========================================================= -->
+      <section id="page-products" class="page-pane">
+        <div class="section-title-wrap">
+          <div>
+            <span class="pastel-badge-tag">STOCK INVENTORY</span>
+            <h1 class="pastel-heading">Store Stocks & Categories</h1>
+            <p class="pastel-sub">All store items sorted by category and 4-digit code. Click "Edit Stock" on any box to update name, code, prices, and dealer details.</p>
+          </div>
+
+          <div class="action-btn-cluster">
+            <button class="btn btn-ghost" onclick="openNewCategoryModal()">
+              <i data-lucide="folder-plus" class="w-4 h-4 text-cyan"></i>
+              <span>+ New Category</span>
+            </button>
+            <button class="btn btn-primary" onclick="openNewProductModal()">
+              <i data-lucide="plus-circle" class="w-4 h-4"></i>
+              <span>+ New Stock</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls -->
+        <div class="filter-controls-row">
+          <div class="search-field-wrapper">
+            <i data-lucide="search" class="search-field-ico"></i>
+            <input type="text" id="inventory-search-input" placeholder="Search by 4-digit code (e.g. 1001) or stock name..." class="form-input search-input-styled" oninput="renderProductsPage()" />
+          </div>
+          <div class="category-pills-horizontal" id="inventory-category-pills">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- PART A: Arranged Stocks by Category & 4-Digit Code with Edit Button -->
+        <div id="products-grouped-container" class="space-y-6">
+          <!-- Populated dynamically -->
+        </div>
+
+        <!-- PART B: Last Week Sales Option in Separate Boxes (Top to Bottom) -->
+        <div class="glass-card velocity-master-panel">
+          <div class="velocity-panel-header">
+            <div class="flex items-center gap-3">
+              <div class="velocity-ico-wrap"><i data-lucide="calendar" class="w-5 h-5 text-cyan"></i></div>
+              <div>
+                <h2 class="text-base font-bold text-white uppercase tracking-wider">Weekly Sales Speed & Last Week's Sales</h2>
+                <p class="text-xs text-muted mt-0.5">
+                  Update and inspect last week's sales (units/week) for every stock in separate boxes from top to bottom. Click "Edit Stock" to edit all stock details.
+                </p>
+              </div>
+            </div>
+            <span class="badge-pastel-cyan font-mono text-xs">Live Calculation Active</span>
+          </div>
+
+          <div class="velocity-vertical-boxes" id="sales-boxes-vertical-container">
+            <!-- Separate individual boxes from top to bottom with Edit Stock button -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ========================================================= -->
+      <!-- PAGE 4: ADMIN & ACCOUNTS (Multiple Managers & Shifts) -->
+      <!-- ========================================================= -->
+      <section id="page-admin" class="page-pane">
+        
+        <!-- Store Identity Header -->
+        <div class="glass-card profile-executive-card">
+          <div class="profile-executive-grid">
+            <div class="profile-avatar-column">
+              <div class="profile-avatar-glow-ring">
+                <div class="profile-avatar-inner">
+                  <i data-lucide="shield-check" class="w-10 h-10 text-cyan"></i>
+                </div>
+              </div>
+            </div>
+
+            <div class="profile-details-column">
+              <div class="profile-store-row">
+                <h1 class="store-display-title" id="admin-disp-store-name">Pulse Guard Megastore #042</h1>
+                <span class="store-verified-pill" title="Verified Multi-Department Store">
+                  <i data-lucide="check" class="w-3.5 h-3.5 text-white"></i>
+                </span>
+                <button class="btn btn-ghost btn-sm" onclick="openEditStoreModal()">Edit Store</button>
+              </div>
+
+              <div class="profile-stats-strip">
+                <div class="p-stat-item">
+                  <span class="p-stat-number" id="admin-stat-skus">0</span>
+                  <span class="p-stat-label">Total Stocks</span>
+                </div>
+                <div class="p-stat-item">
+                  <span class="p-stat-number" id="admin-stat-depts">0</span>
+                  <span class="p-stat-label">Categories</span>
+                </div>
+                <div class="p-stat-item">
+                  <span class="p-stat-number text-red" id="admin-stat-alerts">0</span>
+                  <span class="p-stat-label">Low Stock Alerts</span>
+                </div>
+                <div class="p-stat-item">
+                  <span class="p-stat-number text-cyan" id="admin-stat-managers">0</span>
+                  <span class="p-stat-label">Managers On Roster</span>
+                </div>
+              </div>
+
+              <div class="profile-bio-card">
+                <div class="manager-name-text">Store HQ: Alexander Vance & Store Management Team</div>
+                <div class="manager-role-text">Multi-Department Operations, Cashier Accounting & Supply Protection</div>
+                <div class="manager-security-note">
+                  <i data-lucide="lock" class="w-3 h-3 text-cyan"></i>
+                  <span>Wholesale contracts and dealer phone numbers are protected under Manager PIN (8844).</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: MULTIPLE MANAGERS & SHIFT TIMINGS MANAGEMENT CARD -->
+        <div class="glass-card p-5 mb-5">
+          <div class="flex items-center justify-between pb-3 border-b border-white-5 mb-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <i data-lucide="users" class="w-4 h-4 text-cyan"></i>
+                <h3 class="font-bold text-white text-base">Store Managers & Shift Schedule</h3>
+              </div>
+              <p class="text-xs text-muted mt-0.5">Manage multiple manager accounts, contact details, and shift schedules for this store.</p>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openAddManagerModal()">
+              <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+              <span>+ Add Manager Account</span>
+            </button>
+          </div>
+
+          <div class="managers-cards-grid" id="managers-list-container">
+            <!-- Populated dynamically with managers and their shift timings -->
+          </div>
+        </div>
+
+        <!-- Statements: Last Week & Last Month Profit & Loss Drafts -->
+        <div class="financial-statements-grid">
+          
+          <!-- DRAFT 1: LAST WEEK PROFIT & LOSS -->
+          <div class="glass-card draft-statement-card">
+            <div class="draft-statement-header">
+              <span class="statement-tag-pill tag-cyan">7-DAY STORE ACCOUNT</span>
+              <h3 class="statement-headline">Last Week Profit & Loss Draft</h3>
+              <span class="font-mono text-xs text-muted">Period: Rolling Past 7 Days</span>
+            </div>
+
+            <div class="draft-statement-body">
+              <div class="statement-line">
+                <span class="stmt-lbl">Total Sales (Turnover):</span>
+                <span class="stmt-val font-bold text-white font-mono" id="draft-week-rev">₹0</span>
+              </div>
+              <div class="statement-line">
+                <span class="stmt-lbl">Buying Cost (What we paid):</span>
+                <span class="stmt-val text-muted font-mono" id="draft-week-cogs">₹0</span>
+              </div>
+              <div class="statement-line line-green">
+                <span class="stmt-lbl font-bold text-green">Net Realized Profit:</span>
+                <span class="stmt-val font-bold text-green font-mono" id="draft-week-profit">₹0</span>
+              </div>
+              <div class="statement-line">
+                <span class="stmt-lbl">Weekly Profit Margin:</span>
+                <span class="stmt-val font-bold text-cyan font-mono" id="draft-week-margin">0.0%</span>
+              </div>
+              <div class="statement-line line-red">
+                <span class="stmt-lbl font-bold text-red">Money Lost From Unattended Stocks:</span>
+                <span class="stmt-val font-bold text-red font-mono" id="draft-week-loss">₹0</span>
+              </div>
+            </div>
+
+            <div class="draft-statement-footer">
+              <span class="audit-badge"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-green"></i> POS Cashier Reconciled</span>
+              <button class="btn btn-ghost btn-sm" onclick="window.print()"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Export Statement</button>
+            </div>
+          </div>
+
+          <!-- DRAFT 2: LAST MONTH PROFIT & LOSS -->
+          <div class="glass-card draft-statement-card">
+            <div class="draft-statement-header">
+              <span class="statement-tag-pill tag-purple">30-DAY STORE ACCOUNT</span>
+              <h3 class="statement-headline">Last Month Profit & Loss Draft</h3>
+              <span class="font-mono text-xs text-muted">Period: Preceding 30 Calendar Days</span>
+            </div>
+
+            <div class="draft-statement-body">
+              <div class="statement-line">
+                <span class="stmt-lbl">Total Monthly Sales:</span>
+                <span class="stmt-val font-bold text-white font-mono" id="draft-month-rev">₹0</span>
+              </div>
+              <div class="statement-line">
+                <span class="stmt-lbl">Monthly Buying Cost:</span>
+                <span class="stmt-val text-muted font-mono" id="draft-month-cogs">₹0</span>
+              </div>
+              <div class="statement-line line-green">
+                <span class="stmt-lbl font-bold text-green">Net Realized Monthly Profit:</span>
+                <span class="stmt-val font-bold text-green font-mono" id="draft-month-profit">₹0</span>
+              </div>
+              <div class="statement-line">
+                <span class="stmt-lbl">Monthly Profit Margin:</span>
+                <span class="stmt-val font-bold text-cyan font-mono" id="draft-month-margin">0.0%</span>
+              </div>
+              <div class="statement-line line-red">
+                <span class="stmt-lbl font-bold text-red">Monthly Preventable Loss:</span>
+                <span class="stmt-val font-bold text-red font-mono" id="draft-month-loss">₹0</span>
+              </div>
+            </div>
+
+            <div class="draft-statement-footer">
+              <span class="audit-badge"><i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-green"></i> Store Super Verified</span>
+              <button class="btn btn-ghost btn-sm" onclick="window.print()"><i data-lucide="printer" class="w-3.5 h-3.5"></i> Export Statement</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Mobile Instagram Bottom Bar -->
+    <nav class="mobile-bottom-nav">
+      <button class="m-nav-tab active" id="bottom-btn-home" onclick="switchPage('home')">
+        <i data-lucide="activity"></i>
+        <span>Alerts</span>
+      </button>
+      <button class="m-nav-tab" id="bottom-btn-insights" onclick="switchPage('insights')">
+        <i data-lucide="bar-chart-3"></i>
+        <span>P&L</span>
+      </button>
+      <button class="m-nav-tab" id="bottom-btn-products" onclick="switchPage('products')">
+        <i data-lucide="boxes"></i>
+        <span>Stocks</span>
+      </button>
+      <button class="m-nav-tab" id="bottom-btn-admin" onclick="switchPage('admin')">
+        <i data-lucide="shield-check"></i>
+        <span>Admin</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <!-- ========================================================= -->
+  <!-- MODAL 1: EDIT STOCK MODAL (Edit everything in the stock box) -->
+  <!-- ========================================================= -->
+  <div class="modal-backdrop hidden" id="modal-edit-stock">
+    <div class="modal-dialog-box modal-md">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2">
+          <i data-lucide="edit-3" class="w-5 h-5 text-cyan"></i>
+          <h3 class="modal-title-text" id="modal-edit-stock-title">Edit Stock Information</h3>
+        </div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-edit-stock')"><i data-lucide="x"></i></button>
+      </div>
+
+      <form onsubmit="handleSaveEditedStock(event)" class="modal-form-content">
+        <input type="hidden" id="edit-stock-id" />
+
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">4-Digit Stock Code: *</label>
+            <input type="text" id="edit-stock-code" maxlength="4" required class="form-input font-mono" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Category: *</label>
+            <select id="edit-stock-category" required class="form-select"></select>
+          </div>
+        </div>
+
+        <div class="form-control-group">
+          <label class="form-label-styled">Stock Name: *</label>
+          <input type="text" id="edit-stock-name" required class="form-input" />
+        </div>
+
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Number of Stocks: *</label>
+            <input type="number" id="edit-stock-qty" min="0" required class="form-input font-mono" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Last Week Sales (Units/Wk): *</label>
+            <input type="number" step="0.5" min="1" id="edit-stock-sales" required class="form-input font-mono" />
+          </div>
+        </div>
+
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Buying Cost Price (₹): *</label>
+            <input type="number" step="0.01" id="edit-stock-cost" required class="form-input font-mono" oninput="updateLiveProfitPreview()" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Selling Price (₹): *</label>
+            <input type="number" step="0.01" id="edit-stock-price" required class="form-input font-mono text-cyan" oninput="updateLiveProfitPreview()" />
+          </div>
+        </div>
+
+        <!-- Live Profit & Loss Calculation Preview -->
+        <div class="p-3 rounded-lg bg-surface border border-subtle flex justify-between items-center text-xs font-mono">
+          <span class="text-muted">Calculated Profit Per Unit:</span>
+          <span id="edit-preview-profit" class="text-green font-bold">₹0.00 (0.0% margin)</span>
+        </div>
+
+        <!-- Dealer Information (Name, Email, Number) -->
+        <div class="pt-2 border-t border-white-5 space-y-2">
+          <span class="text-xs font-bold font-mono text-cyan uppercase tracking-wider block">Wholesale Dealer Details:</span>
+          <div class="form-control-group">
+            <label class="form-label-styled">Dealer Contact Name:</label>
+            <input type="text" id="edit-stock-dealer-name" placeholder="Dealer Name" class="form-input" />
+          </div>
+          <div class="form-dual-grid">
+            <div class="form-control-group">
+              <label class="form-label-styled">Dealer Phone Number:</label>
+              <input type="text" id="edit-stock-dealer-phone" placeholder="+91-98000-00000" class="form-input font-mono" />
+            </div>
+            <div class="form-control-group">
+              <label class="form-label-styled">Dealer Email Address:</label>
+              <input type="email" id="edit-stock-dealer-email" placeholder="orders@dealer.in" class="form-input font-mono" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-stock')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 2: NEW STOCK -->
+  <div class="modal-backdrop hidden" id="modal-new-product">
+    <div class="modal-dialog-box">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-5 h-5 text-cyan"></i>
+          <h3 class="modal-title-text">Register New Stock</h3>
+        </div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-new-product')"><i data-lucide="x"></i></button>
+      </div>
+
+      <form onsubmit="handleCreateProduct(event)" class="modal-form-content">
+        <div class="form-control-group">
+          <label class="form-label-styled">Four Digit Code (Unique): *</label>
+          <input type="text" id="inp-prod-code" maxlength="4" placeholder="e.g. 1045" required class="form-input font-mono" />
+        </div>
+        <div class="form-control-group">
+          <label class="form-label-styled">Name of the Stock: *</label>
+          <input type="text" id="inp-prod-name" placeholder="e.g. Wireless Mouse" required class="form-input" />
+        </div>
+        <div class="form-control-group">
+          <label class="form-label-styled">Category: *</label>
+          <select id="inp-prod-cat" required class="form-select"></select>
+        </div>
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Number of Stocks: *</label>
+            <input type="number" id="inp-prod-stock" min="0" placeholder="50" required class="form-input font-mono" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Buying Cost Price (₹): *</label>
+            <input type="number" step="0.01" id="inp-prod-cost" placeholder="450.00" required class="form-input font-mono" />
+          </div>
+        </div>
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Price of the Stock (₹ Retail): *</label>
+            <input type="number" step="0.01" id="inp-prod-price" placeholder="899.00" required class="form-input font-mono text-cyan" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">First Week Avg Sales (Units/Wk): *</label>
+            <input type="number" min="1" id="inp-prod-avg" placeholder="21" required class="form-input font-mono" />
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-new-product')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Add Stock</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 3: NEW CATEGORY -->
+  <div class="modal-backdrop hidden" id="modal-new-category">
+    <div class="modal-dialog-box modal-sm">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2"><i data-lucide="folder-plus" class="w-5 h-5 text-cyan"></i><h3 class="modal-title-text">Create Category</h3></div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-new-category')"><i data-lucide="x"></i></button>
+      </div>
+      <form onsubmit="handleCreateCategory(event)" class="modal-form-content">
+        <div class="form-control-group"><label class="form-label-styled">Category Name: *</label><input type="text" id="inp-cat-name" placeholder="e.g. Gourmet Pantry" required class="form-input" /></div>
+        <div class="form-control-group"><label class="form-label-styled">Icon:</label>
+          <select id="inp-cat-icon" class="form-select font-mono">
+            <option value="package">Package / General</option>
+            <option value="coffee">Beverages / Pantry</option>
+            <option value="gamepad-2">Toys / Gaming</option>
+            <option value="shirt">Apparel / Footwear</option>
+            <option value="wrench">Hardware / Tools</option>
+          </select>
+        </div>
+        <div class="modal-actions-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-new-category')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Create Category</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 4: ADD MANAGER ACCOUNT & SHIFT TIMINGS -->
+  <div class="modal-backdrop hidden" id="modal-add-manager">
+    <div class="modal-dialog-box modal-md">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2">
+          <i data-lucide="user-plus" class="w-5 h-5 text-cyan"></i>
+          <h3 class="modal-title-text">Add Store Manager & Shift Schedule</h3>
+        </div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-add-manager')"><i data-lucide="x"></i></button>
+      </div>
+
+      <form onsubmit="handleAddManager(event)" class="modal-form-content">
+        <div class="form-control-group">
+          <label class="form-label-styled">Manager Full Name: *</label>
+          <input type="text" id="inp-mgr-name" placeholder="e.g. Priya Sharma" required class="form-input" />
+        </div>
+
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Email Address: *</label>
+            <input type="email" id="inp-mgr-email" placeholder="priya@pulseguard.store" required class="form-input font-mono" />
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Phone Number: *</label>
+            <input type="text" id="inp-mgr-phone" placeholder="+91-98000-11223" required class="form-input font-mono" />
+          </div>
+        </div>
+
+        <div class="form-dual-grid">
+          <div class="form-control-group">
+            <label class="form-label-styled">Manager Role: *</label>
+            <select id="inp-mgr-role" class="form-select">
+              <option value="Assistant Store Manager">Assistant Store Manager</option>
+              <option value="Shift Supervisor">Shift Supervisor</option>
+              <option value="Inventory Lead">Inventory Lead</option>
+              <option value="Cashier Operations Head">Cashier Operations Head</option>
+            </select>
+          </div>
+          <div class="form-control-group">
+            <label class="form-label-styled">Assigned Shift Timing: *</label>
+            <select id="inp-mgr-shift" class="form-select">
+              <option value="Morning Shift (08:00 AM - 04:00 PM)">Morning Shift (08:00 AM - 04:00 PM)</option>
+              <option value="Evening Shift (03:30 PM - 11:30 PM)">Evening Shift (03:30 PM - 11:30 PM)</option>
+              <option value="Night Shift (11:00 PM - 07:00 AM)">Night Shift (11:00 PM - 07:00 AM)</option>
+              <option value="General Store Shift (10:00 AM - 07:00 PM)">General Store Shift (10:00 AM - 07:00 PM)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions-footer">
+          <button type="button" class="btn btn-ghost" onclick="closeModal('modal-add-manager')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Manager</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL 5: POS BILLING (Auto-deduction) -->
+  <div class="modal-backdrop hidden" id="modal-billing">
+    <div class="modal-dialog-box modal-lg">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2"><i data-lucide="receipt" class="w-5 h-5 text-cyan"></i><h3 class="modal-title-text">Store POS Cashier (Auto Stock Reconciliation)</h3></div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-billing')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="pos-dual-container">
+        <div>
+          <div class="pos-search-strip">
+            <input type="text" id="pos-search-code" maxlength="4" placeholder="Scan or enter 4-digit code..." class="form-input font-mono" onkeydown="if(event.key === 'Enter') handlePosAddByCode()" />
+            <button class="btn btn-primary" onclick="handlePosAddByCode()">Add</button>
+          </div>
+          <div class="pos-sku-picker-grid" id="pos-quick-items-grid"></div>
+        </div>
+        <div class="glass-card pos-bill-panel">
+          <div class="flex justify-between items-center pb-2 border-b border-white-5">
+            <span class="font-bold text-white text-xs uppercase tracking-wider">Customer Bill</span>
+            <button class="text-red text-xs hover:underline font-mono" onclick="clearCart()">Clear</button>
+          </div>
+          <div class="pos-cart-list" id="pos-cart-lines"></div>
+          <div class="pos-summary-block">
+            <div class="pos-sum-row"><span>Subtotal:</span><span id="pos-disp-subtotal">₹0.00</span></div>
+            <div class="pos-sum-row"><span>GST (5%):</span><span id="pos-disp-gst">₹0.00</span></div>
+            <div class="pos-sum-row text-green"><span>Estimated Profit:</span><span id="pos-disp-profit">₹0.00</span></div>
+            <div class="pos-total-row"><span>TOTAL DUE:</span><span class="text-cyan font-mono font-bold text-base" id="pos-disp-total">₹0.00</span></div>
+            <button class="btn btn-primary w-full mt-3 font-bold" id="btn-complete-bill" onclick="processPOSCheckout()" disabled>
+              COMPLETE & AUTO-DEDUCT
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 6: "FORCE" AI COPILOT CHATBOT (Friendly Voice) -->
+  <div class="modal-backdrop hidden" id="modal-force">
+    <div class="modal-dialog-box modal-md">
+      <div class="modal-header-row">
+        <div class="flex items-center gap-2">
+          <div class="force-avatar-pill"><i data-lucide="bot" class="w-4 h-4 text-cyan"></i></div>
+          <div><h3 class="modal-title-text">FORCE Copilot</h3><span class="text-[10px] text-muted font-mono">Store Buddy &bull; Friendly &bull; Real-time</span></div>
+        </div>
+        <button class="modal-close-trigger" onclick="closeModal('modal-force')"><i data-lucide="x"></i></button>
+      </div>
+      <div class="force-chat-thread" id="force-chat-container">
+        <div class="chat-bubble bot-bubble">
+          <span class="chat-speaker">FORCE // YOUR STORE PAL</span>
+          <p>Hey there friend! How's your shift going? I'm watching all our inventory numbers in the background. Ask me about any 4-digit stock code, how much we have left, or how many units we need to dodge Stage 3 critical stockouts!</p>
+        </div>
+      </div>
+      <div class="force-input-container">
+        <input type="text" id="force-user-input" placeholder="Ask your friend FORCE (e.g. 'How are we doing on 1001?')..." class="form-input" onkeydown="if(event.key === 'Enter') handleSendForceChat()" />
+        <button class="btn btn-primary" onclick="handleSendForceChat()"><i data-lucide="send" class="w-4 h-4"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 7: EDIT STORE PROFILE -->
+  <div class="modal-backdrop hidden" id="modal-edit-store">
+    <div class="modal-dialog-box modal-sm">
+      <div class="modal-header-row"><h3 class="modal-title-text">Edit Store Information</h3><button class="modal-close-trigger" onclick="closeModal('modal-edit-store')"><i data-lucide="x"></i></button></div>
+      <form onsubmit="handleSaveStoreProfile(event)" class="modal-form-content">
+        <div class="form-control-group"><label class="form-label-styled">Shop Name:</label><input type="text" id="inp-edit-store-name" required class="form-input" /></div>
+        <div class="form-control-group"><label class="form-label-styled">Manager In-Charge:</label><input type="text" id="inp-edit-manager-name" required class="form-input" /></div>
+        <div class="form-control-group"><label class="form-label-styled">Official Email:</label><input type="email" id="inp-edit-manager-email" required class="form-input" /></div>
+        <div class="form-control-group"><label class="form-label-styled">Manager PIN:</label><input type="password" id="inp-edit-manager-pin" maxlength="4" required class="form-input font-mono" /></div>
+        <div class="modal-actions-footer"><button type="button" class="btn btn-ghost" onclick="closeModal('modal-edit-store')">Cancel</button><button type="submit" class="btn btn-primary">Save Changes</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="pg-toast" class="toast-notification hidden"><i data-lucide="bell" class="w-4 h-4 text-cyan" id="toast-ico"></i><span id="toast-msg-text" class="font-mono text-xs text-white">Notification</span></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
