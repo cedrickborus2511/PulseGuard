@@ -55,7 +55,7 @@
 1. In your GitHub repository, navigate to **Settings** ➔ **Pages**.
 2. Under **Build and deployment > Branch**, select `main` and `/ (root)`.
 3. Click **Save**. Your site will be published at:
-   `https://rakshavijaykumar28-glitch.github.io/PulseGuard/`
+   `https://cedrickborus2511.github.io/PulseGuard/`
 
 ### Option 2: Netlify / Vercel
 1. Connect this GitHub repository directly to [Netlify](https://app.netlify.com) or [Vercel](https://vercel.com).
