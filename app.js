@@ -197,42 +197,111 @@ let appState = {
 };
 
 /**
+ * PRODUCTION-GRADE STORAGE & SANITIZATION UTILITIES
+ */
+const memoryStorage = {};
+
+function safeStorageGet(key, defaultVal = null) {
+  try {
+    const val = localStorage.getItem(key);
+    return val !== null ? val : defaultVal;
+  } catch (err) {
+    console.warn(`[PulseGuard] LocalStorage read failed for ${key}, falling back to memory storage.`, err);
+    return Object.prototype.hasOwnProperty.call(memoryStorage, key) ? memoryStorage[key] : defaultVal;
+  }
+}
+
+function safeStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch (err) {
+    console.warn(`[PulseGuard] LocalStorage write failed for ${key}, storing in memory.`, err);
+    memoryStorage[key] = String(value);
+  }
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+let iconRefreshPending = false;
+function refreshIcons() {
+  if (iconRefreshPending) return;
+  iconRefreshPending = true;
+  requestAnimationFrame(() => {
+    try {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    } catch (e) {
+      console.warn('[PulseGuard] Lucide icon refresh error', e);
+    }
+    iconRefreshPending = false;
+  });
+}
+
+/**
  * INITIALIZATION & STORAGE RESTORATION
  */
 function initApp() {
-  const savedProds = localStorage.getItem('pulseguard_products');
-  appState.products = savedProds ? JSON.parse(savedProds) : SEED_PRODUCTS;
+  try {
+    const savedProds = safeStorageGet('pulseguard_products');
+    appState.products = savedProds ? JSON.parse(savedProds) : SEED_PRODUCTS;
+  } catch (_) {
+    appState.products = SEED_PRODUCTS;
+  }
 
-  const savedCats = localStorage.getItem('pulseguard_categories');
-  appState.categories = savedCats ? JSON.parse(savedCats) : SEED_CATEGORIES;
+  try {
+    const savedCats = safeStorageGet('pulseguard_categories');
+    appState.categories = savedCats ? JSON.parse(savedCats) : SEED_CATEGORIES;
+  } catch (_) {
+    appState.categories = SEED_CATEGORIES;
+  }
 
-  const savedMgrs = localStorage.getItem('pulseguard_managers');
-  appState.managers = savedMgrs ? JSON.parse(savedMgrs) : SEED_MANAGERS;
+  try {
+    const savedMgrs = safeStorageGet('pulseguard_managers');
+    appState.managers = savedMgrs ? JSON.parse(savedMgrs) : SEED_MANAGERS;
+  } catch (_) {
+    appState.managers = SEED_MANAGERS;
+  }
 
-  const savedProfile = localStorage.getItem('pulseguard_profile');
-  if (savedProfile) appState.storeProfile = JSON.parse(savedProfile);
+  try {
+    const savedProfile = safeStorageGet('pulseguard_profile');
+    if (savedProfile) appState.storeProfile = JSON.parse(savedProfile);
+  } catch (_) {}
 
-  const savedResolved = localStorage.getItem('pulseguard_resolved_alerts');
-  if (savedResolved) appState.resolvedAlerts = JSON.parse(savedResolved);
+  try {
+    const savedResolved = safeStorageGet('pulseguard_resolved_alerts');
+    if (savedResolved) appState.resolvedAlerts = JSON.parse(savedResolved);
+  } catch (_) {}
 
-  const savedTheme = localStorage.getItem('pulseguard_theme') || 'dark';
+  const savedTheme = safeStorageGet('pulseguard_theme', 'dark');
   applyTheme(savedTheme);
 
-  const savedDock = localStorage.getItem('pulseguard_force_dock');
+  const savedDock = safeStorageGet('pulseguard_force_dock');
   appState.forceDockOpen = savedDock !== null ? savedDock === 'true' : true;
   toggleForceDock(appState.forceDockOpen);
 
+  // Setup modal click-outside and accessible event listeners
+  setupAccessibleModalEvents();
+
   renderAll();
-  lucide.createIcons();
+  refreshIcons();
 }
 
 function saveState() {
-  localStorage.setItem('pulseguard_products', JSON.stringify(appState.products));
-  localStorage.setItem('pulseguard_categories', JSON.stringify(appState.categories));
-  localStorage.setItem('pulseguard_managers', JSON.stringify(appState.managers));
-  localStorage.setItem('pulseguard_profile', JSON.stringify(appState.storeProfile));
-  localStorage.setItem('pulseguard_resolved_alerts', JSON.stringify(appState.resolvedAlerts));
-  localStorage.setItem('pulseguard_force_dock', String(appState.forceDockOpen));
+  safeStorageSet('pulseguard_products', JSON.stringify(appState.products));
+  safeStorageSet('pulseguard_categories', JSON.stringify(appState.categories));
+  safeStorageSet('pulseguard_managers', JSON.stringify(appState.managers));
+  safeStorageSet('pulseguard_profile', JSON.stringify(appState.storeProfile));
+  safeStorageSet('pulseguard_resolved_alerts', JSON.stringify(appState.resolvedAlerts));
+  safeStorageSet('pulseguard_force_dock', String(appState.forceDockOpen));
 }
 
 /**
@@ -263,7 +332,7 @@ function applyTheme(theme) {
   if (pnlChartInstance) {
     renderProductFocusedChart();
   }
-  lucide.createIcons();
+  refreshIcons();
 }
 
 /**
@@ -352,19 +421,38 @@ function computeMetrics(prod) {
 }
 
 /**
- * NAVIGATION ROUTER
+ * NAVIGATION ROUTER (Desktop Sidebar & Mobile Bottom Bar Synchronized)
  */
 function switchPage(pageId) {
   appState.currentPage = pageId;
 
   ['home', 'insights', 'products', 'admin'].forEach(p => {
-    document.getElementById(`page-${p}`)?.classList.toggle('active', p === pageId);
-    document.getElementById(`sidebar-btn-${p}`)?.classList.toggle('active', p === pageId);
-    document.getElementById(`bottom-btn-${p}`)?.classList.toggle('active', p === pageId);
+    const isTarget = (p === pageId);
+    const pageEl = document.getElementById(`page-${p}`);
+    if (pageEl) pageEl.classList.toggle('active', isTarget);
+
+    const sideBtn = document.getElementById(`sidebar-btn-${p}`);
+    if (sideBtn) {
+      sideBtn.classList.toggle('active', isTarget);
+      if (isTarget) sideBtn.setAttribute('aria-current', 'page');
+      else sideBtn.removeAttribute('aria-current');
+    }
+
+    const mobBtn = document.getElementById(`mob-btn-${p}`);
+    if (mobBtn) {
+      mobBtn.classList.toggle('active', isTarget);
+      if (isTarget) mobBtn.setAttribute('aria-current', 'page');
+      else mobBtn.removeAttribute('aria-current');
+    }
   });
 
   // Toggle active class on sidebar profile button if page is admin
-  document.getElementById('sidebar-btn-admin')?.classList.toggle('active', pageId === 'admin');
+  const adminBtn = document.getElementById('sidebar-btn-admin');
+  if (adminBtn) {
+    adminBtn.classList.toggle('active', pageId === 'admin');
+    if (pageId === 'admin') adminBtn.setAttribute('aria-current', 'page');
+    else adminBtn.removeAttribute('aria-current');
+  }
 
   renderAll();
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -377,7 +465,7 @@ function renderAll() {
   renderProductsPage();
   renderAdminPage();
   renderActiveDutyHeader();
-  lucide.createIcons();
+  refreshIcons();
 }
 
 function updateAlertBadge() {
@@ -385,6 +473,8 @@ function updateAlertBadge() {
   const alertCount = appState.products.filter(p => computeMetrics(p).numericDaysLeft <= 7.0 && !appState.resolvedAlerts[p.id]).length;
   const el = document.getElementById('badge-alert-count');
   if (el) el.innerText = alertCount;
+  const mobEl = document.getElementById('mob-badge-alerts');
+  if (mobEl) mobEl.innerText = alertCount;
 }
 
 function renderActiveDutyHeader() {
@@ -424,7 +514,7 @@ function renderHomePage() {
           <p class="text-xs mt-1">When an alert shortage is tackled via the Mail button, it logs here and clears from the active radar.</p>
         </div>
       `;
-      lucide.createIcons();
+      refreshIcons();
       return;
     }
 
@@ -442,11 +532,11 @@ function renderHomePage() {
             </div>
             <div>
               <div class="flex items-center gap-1.5">
-                <span class="alert-code-tag">#${item.code}</span>
+                <span class="alert-code-tag">#${escapeHtml(item.code)}</span>
                 <span class="text-muted text-xs">&bull;</span>
-                <span class="text-xs text-muted font-mono uppercase">${item.category}</span>
+                <span class="text-xs text-muted font-mono uppercase">${escapeHtml(item.category)}</span>
               </div>
-              <h2 class="alert-prod-title">${item.name}</h2>
+              <h2 class="alert-prod-title">${escapeHtml(item.name)}</h2>
             </div>
           </div>
           <span class="badge-healthy font-mono text-xs">RESOLVED VIA DEALER PO</span>
@@ -459,7 +549,7 @@ function renderHomePage() {
               <span>PURCHASE ORDER MAILED TO WHOLESALE DEALER:</span>
             </div>
             <p class="text-xs text-secondary">
-              Dispatched order for <strong>+${item.shortageUnits} units</strong> to <strong>${item.dealerName}</strong> (${item.dealerEmail} &bull; ${item.dealerPhone}).
+              Dispatched order for <strong>+${item.shortageUnits} units</strong> to <strong>${escapeHtml(item.dealerName)}</strong> (${escapeHtml(item.dealerEmail)} &bull; ${escapeHtml(item.dealerPhone)}).
             </p>
             <div class="unattended-loss-row">
               <span class="text-green font-bold">Revenue Safeguarded:</span>
@@ -470,7 +560,7 @@ function renderHomePage() {
 
         <div class="alert-action-strip">
           <div class="text-xs text-muted font-mono">
-            Mailed at ${item.resolvedAt}
+            Mailed at ${escapeHtml(item.resolvedAt)}
           </div>
           <div class="action-strip-btns">
             <button class="btn btn-ghost btn-sm" onclick="unresolveAlert('${id}')" title="Reopen this alert into active feed">
@@ -486,7 +576,7 @@ function renderHomePage() {
       `;
       feed.appendChild(card);
     });
-    lucide.createIcons();
+    refreshIcons();
     return;
   }
 
@@ -516,7 +606,7 @@ function renderHomePage() {
         <p class="text-xs mt-1">Zero unresolved shortages under current radar filter.</p>
       </div>
     `;
-    lucide.createIcons();
+    refreshIcons();
     return;
   }
 
@@ -550,11 +640,11 @@ function renderHomePage() {
           </div>
           <div>
             <div class="flex items-center gap-1.5">
-              <span class="alert-code-tag">#${p.code}</span>
+              <span class="alert-code-tag">#${escapeHtml(p.code)}</span>
               <span class="text-muted text-xs">&bull;</span>
-              <span class="text-xs text-muted font-mono uppercase">${p.category}</span>
+              <span class="text-xs text-muted font-mono uppercase">${escapeHtml(p.category)}</span>
             </div>
-            <h2 class="alert-prod-title">${p.name}</h2>
+            <h2 class="alert-prod-title">${escapeHtml(p.name)}</h2>
           </div>
         </div>
         <span class="${m.badgeClass}">${m.stageLabel}</span>
@@ -619,20 +709,20 @@ function renderHomePage() {
             <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
             <span>Edit Stock</span>
           </button>
-          <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+          <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${escapeHtml(p.code)}">
             <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
             <span>Delete</span>
           </button>
         </div>
         <div class="text-xs font-mono text-muted">
-          Dealer: ${p.dealer?.name || 'Direct Wholesale'} (${p.dealer?.email || 'orders@dealer.in'})
+          Dealer: ${escapeHtml(p.dealer?.name || 'Direct Wholesale')} (${escapeHtml(p.dealer?.email || 'orders@dealer.in')})
         </div>
       </div>
     `;
 
     feed.appendChild(card);
   });
-  lucide.createIcons();
+  refreshIcons();
 }
 
 /**
@@ -704,17 +794,21 @@ function filterHomeAlerts(type) {
   pills.forEach(pill => pill.classList.remove('active-pill'));
 
   renderHomePage();
-  lucide.createIcons();
+  refreshIcons();
 }
 
 function filterHomeByDept(dept) {
   appState.homeFilter = dept;
   renderHomePage();
-  lucide.createIcons();
+  refreshIcons();
 }
 
 function copyProductCode(code) {
-  navigator.clipboard.writeText(code);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code);
+    }
+  } catch (_) {}
   showToast(`Stock #${code} copied to clipboard!`, 'info');
 }
 
@@ -861,9 +955,9 @@ function renderAllProductsLedger() {
       <div class="ledger-card">
         <div class="flex justify-between items-start">
           <div>
-            <span class="font-mono text-xs font-bold text-cyan">#${p.code}</span>
-            <h4 class="font-bold text-white text-sm">${p.name}</h4>
-            <span class="text-xs text-muted font-mono uppercase">${p.category}</span>
+            <span class="font-mono text-xs font-bold text-cyan">#${escapeHtml(p.code)}</span>
+            <h4 class="font-bold text-white text-sm">${escapeHtml(p.name)}</h4>
+            <span class="text-xs text-muted font-mono uppercase">${escapeHtml(p.category)}</span>
           </div>
           <span class="font-mono text-xs font-bold ${m.stage === 'STAGE3' ? 'text-red' : 'text-green'}">
             ${m.profitMarginPct}% margin
@@ -885,7 +979,7 @@ function renderAllProductsLedger() {
               <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
               <span>Edit</span>
             </button>
-            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${escapeHtml(p.code)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
               <span>Delete</span>
             </button>
@@ -933,7 +1027,7 @@ function renderProductsPage() {
         <div class="category-dept-block">
           <div class="category-dept-title">
             <i data-lucide="${c.icon || 'package'}" class="w-4 h-4 text-cyan"></i>
-            <span>${c.name}</span>
+            <span>${escapeHtml(c.name)}</span>
             <span class="text-xs text-muted font-normal font-mono">(${prods.length} Stocks)</span>
           </div>
 
@@ -944,10 +1038,10 @@ function renderProductsPage() {
                 <div class="dept-sku-card" id="card-${p.id}">
                   <div>
                     <div class="flex justify-between items-start">
-                      <span class="font-mono text-xs font-bold text-cyan">#${p.code}</span>
+                      <span class="font-mono text-xs font-bold text-cyan">#${escapeHtml(p.code)}</span>
                       <span class="${m.badgeClass}">${m.timeLeftBadge}</span>
                     </div>
-                    <h4 class="font-bold text-white text-sm mt-1">${p.name}</h4>
+                    <h4 class="font-bold text-white text-sm mt-1">${escapeHtml(p.name)}</h4>
                   </div>
 
                   <div class="space-y-1.5 pt-2 border-t border-white-5 text-xs font-mono">
@@ -968,17 +1062,17 @@ function renderProductsPage() {
                       <span class="text-muted">Last Wk: ${p.lastWeekSales}/wk</span>
                     </div>
                     <div class="text-[11px] text-muted truncate">
-                      Dealer: ${p.dealer?.name || 'Direct Wholesale'} (${p.dealer?.phone || 'N/A'})
+                      Dealer: ${escapeHtml(p.dealer?.name || 'Direct Wholesale')} (${escapeHtml(p.dealer?.phone || 'N/A')})
                     </div>
                   </div>
 
                   <!-- ACTIONS: EDIT & DELETE BUTTONS IN EVERY STOCK BOX -->
                   <div class="pt-2 border-t border-white-5 flex items-center gap-2">
-                    <button class="btn btn-ghost btn-sm flex-1 font-bold" onclick="openEditStockModal('${p.id}')" title="Edit details for #${p.code}">
+                    <button class="btn btn-ghost btn-sm flex-1 font-bold" onclick="openEditStockModal('${p.id}')" title="Edit details for #${escapeHtml(p.code)}">
                       <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
                       <span>Edit</span>
                     </button>
-                    <button class="btn btn-ghost btn-sm btn-delete font-bold px-2.5" onclick="promptDeleteStock('${p.id}')" title="Delete #${p.code} (${p.name})">
+                    <button class="btn btn-ghost btn-sm btn-delete font-bold px-2.5" onclick="promptDeleteStock('${p.id}')" title="Delete #${escapeHtml(p.code)} (${escapeHtml(p.name)})">
                       <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
                       <span>Delete</span>
                     </button>
@@ -1001,10 +1095,10 @@ function renderProductsPage() {
       return `
         <div class="velocity-unit-box">
           <div class="flex items-center gap-3">
-            <span class="v-sku-pill">#${p.code}</span>
+            <span class="v-sku-pill">#${escapeHtml(p.code)}</span>
             <div>
-              <strong class="text-white text-sm block">${p.name}</strong>
-              <div class="text-xs text-muted font-mono uppercase">${p.category} &bull; Retail: ₹${p.sellingPrice.toFixed(2)} &bull; Profit: ₹${m.profitPerUnit}</div>
+              <strong class="text-white text-sm block">${escapeHtml(p.name)}</strong>
+              <div class="text-xs text-muted font-mono uppercase">${escapeHtml(p.category)} &bull; Retail: ₹${p.sellingPrice.toFixed(2)} &bull; Profit: ₹${m.profitPerUnit}</div>
             </div>
           </div>
 
@@ -1018,11 +1112,11 @@ function renderProductsPage() {
             <label class="text-xs text-muted font-mono" for="inp-sales-${p.id}">Last Week Sales:</label>
             <input type="number" step="0.5" min="1" id="inp-sales-${p.id}" value="${p.lastWeekSales}" class="v-input-field" />
             <button class="btn btn-ghost btn-sm" onclick="saveWeeklySalesEntry('${p.id}')">Save</button>
-            <button class="btn btn-primary btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Parameters For #${p.code}">
+            <button class="btn btn-primary btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Parameters For #${escapeHtml(p.code)}">
               <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
               <span>Edit</span>
             </button>
-            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${p.code}">
+            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${escapeHtml(p.code)}">
               <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
               <span>Delete</span>
             </button>
@@ -1036,7 +1130,7 @@ function renderProductsPage() {
 function selectInventoryCat(cat) {
   appState.selectedCategory = cat;
   renderProductsPage();
-  lucide.createIcons();
+  refreshIcons();
 }
 
 function saveWeeklySalesEntry(id) {
@@ -1084,8 +1178,7 @@ function openEditStockModal(id) {
 
   // Update Live Profit Preview
   updateLiveProfitPreview();
-
-  document.getElementById('modal-edit-stock').classList.remove('hidden');
+  openModal('modal-edit-stock');
 }
 
 function updateLiveProfitPreview() {
@@ -1169,10 +1262,10 @@ function promptDeleteStock(id) {
 
   const msgEl = document.getElementById('delete-confirm-msg');
   if (msgEl) {
-    msgEl.innerHTML = `Are you sure you want to permanently delete <strong>#${prod.code} ${prod.name}</strong> (${prod.category})?<br/><br/><span class="text-xs text-muted font-mono">Current Stock: ${prod.stock} units &bull; Price: ₹${prod.sellingPrice.toFixed(2)}</span>`;
+    msgEl.innerHTML = `Are you sure you want to permanently delete <strong>#${escapeHtml(prod.code)} ${escapeHtml(prod.name)}</strong> (${escapeHtml(prod.category)})?<br/><br/><span class="text-xs text-muted font-mono">Current Stock: ${prod.stock} units &bull; Price: ₹${prod.sellingPrice.toFixed(2)}</span>`;
   }
 
-  document.getElementById('modal-delete-confirm')?.classList.remove('hidden');
+  openModal('modal-delete-confirm');
 }
 
 function executeDeleteStock() {
@@ -1207,8 +1300,8 @@ function executeDeleteStock() {
  */
 function openNewProductModal() {
   const sel = document.getElementById('inp-prod-cat');
-  if (sel) sel.innerHTML = appState.categories.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-  document.getElementById('modal-new-product').classList.remove('hidden');
+  if (sel) sel.innerHTML = appState.categories.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.name)}</option>`).join('');
+  openModal('modal-new-product');
 }
 
 function handleCreateProduct(e) {
@@ -1244,7 +1337,7 @@ function handleCreateProduct(e) {
 }
 
 function openNewCategoryModal() {
-  document.getElementById('modal-new-category').classList.remove('hidden');
+  openModal('modal-new-category');
 }
 
 function handleCreateCategory(e) {
@@ -1326,28 +1419,28 @@ function renderManagersList() {
     return `
       <div class="manager-card ${m.active ? 'is-active-duty' : ''}">
         <div class="manager-card-header">
-          <div class="mgr-avatar">${initials}</div>
+          <div class="mgr-avatar">${escapeHtml(initials)}</div>
           <div class="mgr-info-block">
-            <h4 class="mgr-info-name">${m.name}</h4>
-            <span class="mgr-info-role">${m.role}</span>
+            <h4 class="mgr-info-name">${escapeHtml(m.name)}</h4>
+            <span class="mgr-info-role">${escapeHtml(m.role)}</span>
           </div>
         </div>
 
         <div>
           <span class="shift-tag-badge ${shiftBadgeClass}">
             <i data-lucide="clock" class="w-3 h-3"></i>
-            <span>${m.shift}</span>
+            <span>${escapeHtml(m.shift)}</span>
           </span>
         </div>
 
         <div class="mgr-contacts-grid">
           <div class="mgr-contact-chip" title="Manager Email">
             <i data-lucide="mail" class="w-3.5 h-3.5 text-cyan shrink-0"></i>
-            <span class="truncate">${m.email}</span>
+            <span class="truncate">${escapeHtml(m.email)}</span>
           </div>
           <div class="mgr-contact-chip" title="Manager Phone Number">
             <i data-lucide="phone" class="w-3.5 h-3.5 text-cyan shrink-0"></i>
-            <span class="truncate">${m.phone}</span>
+            <span class="truncate">${escapeHtml(m.phone)}</span>
           </div>
         </div>
 
@@ -1384,7 +1477,7 @@ function renderManagersList() {
 
 function openAddManagerModal() {
   document.getElementById('inp-mgr-shift').value = "Morning Shift (08:00 AM - 04:00 PM)";
-  document.getElementById('modal-add-manager').classList.remove('hidden');
+  openModal('modal-add-manager');
 }
 
 function handleAddManager(e) {
@@ -1426,7 +1519,7 @@ function openEditManagerModal(id) {
   document.getElementById('edit-mgr-role').value = mgr.role;
   document.getElementById('edit-mgr-shift').value = mgr.shift;
 
-  document.getElementById('modal-edit-manager').classList.remove('hidden');
+  openModal('modal-edit-manager');
 }
 
 function handleSaveEditedManager(e) {
@@ -1493,7 +1586,7 @@ function openEditStoreModal() {
   document.getElementById('inp-edit-manager-name').value = appState.storeProfile.managerName;
   document.getElementById('inp-edit-manager-email').value = appState.storeProfile.managerEmail;
   document.getElementById('inp-edit-manager-pin').value = appState.storeProfile.managerPin;
-  document.getElementById('modal-edit-store').classList.remove('hidden');
+  openModal('modal-edit-store');
 }
 
 function handleSaveStoreProfile(e) {
@@ -1515,14 +1608,14 @@ function handleSaveStoreProfile(e) {
  */
 function openBillingModal() {
   document.getElementById('pos-quick-items-grid').innerHTML = appState.products.map(p => `
-    <div class="pos-sku-chip" onclick="addToCart('${p.id}')">
-      <span class="text-cyan font-mono font-bold text-xs">#${p.code}</span>
-      <div class="truncate text-white text-xs font-semibold mt-1">${p.name}</div>
+    <div class="pos-sku-chip" onclick="addToCart('${p.id}')" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')addToCart('${p.id}')" aria-label="Add #${escapeHtml(p.code)} ${escapeHtml(p.name)} to cart">
+      <span class="text-cyan font-mono font-bold text-xs">#${escapeHtml(p.code)}</span>
+      <div class="truncate text-white text-xs font-semibold mt-1">${escapeHtml(p.name)}</div>
       <div class="text-green font-mono text-xs font-bold mt-1">₹${p.sellingPrice.toFixed(2)}</div>
     </div>
   `).join('');
   renderCart();
-  document.getElementById('modal-billing').classList.remove('hidden');
+  openModal('modal-billing');
 }
 
 function handlePosAddByCode() {
@@ -1646,7 +1739,7 @@ function clearForceChat() {
         <p>Chat thread refreshed! I'm monitoring store inventory and cash flows live alongside your workspace. Depletions under 24 hours are tracked in exact hours. As you resolve shortages, restock, or bill, I'll track your wins in real time!</p>
       </div>
     `;
-    lucide.createIcons();
+    refreshIcons();
   }
 }
 
@@ -1834,7 +1927,7 @@ function handleSendForceChat() {
       </div>
     `;
     feed.scrollTop = feed.scrollHeight;
-    lucide.createIcons();
+    refreshIcons();
   }, 220);
 }
 
@@ -1851,13 +1944,13 @@ function triggerForceAppreciation(taskType, data = {}) {
     case 'mail_dealer':
       badgeIcon = "mail-check";
       title = "🎉 PROBLEM SOLVED & SHORTAGE COVERED!";
-      message = `Outstanding work! You just dispatched an official PO to wholesale partner <strong>${data.dealer}</strong> for <strong>#${data.code} (${data.name})</strong> covering the shortage of <strong>+${data.units} units</strong>.<br/><br/>You successfully safeguarded <strong class="text-green">₹${parseFloat(data.profit).toLocaleString('en-IN')}</strong> in upcoming store profits! The issue has been marked resolved and cleared from the live feed. Stellar store management!`;
+      message = `Outstanding work! You just dispatched an official PO to wholesale partner <strong>${escapeHtml(data.dealer)}</strong> for <strong>#${escapeHtml(data.code)} (${escapeHtml(data.name)})</strong> covering the shortage of <strong>+${data.units} units</strong>.<br/><br/>You successfully safeguarded <strong class="text-green">₹${parseFloat(data.profit).toLocaleString('en-IN')}</strong> in upcoming store profits! The issue has been marked resolved and cleared from the live feed. Stellar store management!`;
       break;
 
     case 'restock':
       badgeIcon = "shield-check";
       title = "⭐ SHELF DEFENSE RESTORED!";
-      message = `Brilliant move! You just replenished <strong>+${data.qty} physical units</strong> for <strong>#${data.code} (${data.name})</strong>. Depletion stage cleared and customer stockout risk eliminated!`;
+      message = `Brilliant move! You just replenished <strong>+${data.qty} physical units</strong> for <strong>#${escapeHtml(data.code)} (${escapeHtml(data.name)})</strong>. Depletion stage cleared and customer stockout risk eliminated!`;
       break;
 
     case 'pos_checkout':
@@ -1869,25 +1962,25 @@ function triggerForceAppreciation(taskType, data = {}) {
     case 'shift_updated':
       badgeIcon = "clock";
       title = "⏱️ ROSTER & SHIFT DIALED IN!";
-      message = `Superb scheduling! Custom shift hours for <strong>${data.managerName}</strong> updated to <strong>${data.shift}</strong>. Precision shifts mean zero coverage gaps on the retail floor!`;
+      message = `Superb scheduling! Custom shift hours for <strong>${escapeHtml(data.managerName)}</strong> updated to <strong>${escapeHtml(data.shift)}</strong>. Precision shifts mean zero coverage gaps on the retail floor!`;
       break;
 
     case 'edit_stock':
       badgeIcon = "sliders";
       title = "💼 INVENTORY TUNED TO PERFECTION!";
-      message = `Great attention to detail! All operational parameters for <strong>#${data.code} (${data.name})</strong> were verified and updated. Clean inventory data drives maximum profit margins!`;
+      message = `Great attention to detail! All operational parameters for <strong>#${escapeHtml(data.code)} (${escapeHtml(data.name)})</strong> were verified and updated. Clean inventory data drives maximum profit margins!`;
       break;
 
     case 'delete_stock':
       badgeIcon = "trash-2";
       title = "🧹 INVENTORY STREAMLINED!";
-      message = `Cleaned up! Decommissioned <strong>#${data.code} (${data.name})</strong> from active stock shelves and ledger records.`;
+      message = `Cleaned up! Decommissioned <strong>#${escapeHtml(data.code)} (${escapeHtml(data.name)})</strong> from active stock shelves and ledger records.`;
       break;
 
     case 'new_stock':
       badgeIcon = "package-plus";
       title = "📦 NEW PRODUCT ON SHELVES!";
-      message = `Awesome addition! Registered <strong>#${data.code} (${data.name})</strong> in the ${data.category} department. Let's start moving those units!`;
+      message = `Awesome addition! Registered <strong>#${escapeHtml(data.code)} (${escapeHtml(data.name)})</strong> in the ${escapeHtml(data.category)} department. Let's start moving those units!`;
       break;
   }
 
@@ -1904,7 +1997,7 @@ function triggerForceAppreciation(taskType, data = {}) {
       </div>
     `;
     feed.scrollTop = feed.scrollHeight;
-    lucide.createIcons();
+    refreshIcons();
   }
 
   // Ensure side dock is visible so the user sees FORCE AI's celebration!
@@ -1913,18 +2006,80 @@ function triggerForceAppreciation(taskType, data = {}) {
   }
 }
 
-function escapeHtml(str) {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+// ACCESSIBLE MODAL CONTROLLER & FOCUS MANAGEMENT
+let lastFocusedElement = null;
+
+function openModal(id) {
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  lastFocusedElement = document.activeElement;
+  modal.classList.remove('hidden');
+
+  requestAnimationFrame(() => {
+    const focusable = modal.querySelectorAll('input:not([type="hidden"]), select, textarea, button:not([disabled])');
+    if (focusable.length > 0) {
+      focusable[0].focus();
+    }
+    refreshIcons();
+  });
+}
+
+function closeModal(id) {
+  const modal = document.getElementById(id);
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+  if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+    try {
+      lastFocusedElement.focus();
+    } catch (_) {}
+    lastFocusedElement = null;
+  }
+}
+
+function setupAccessibleModalEvents() {
+  // Backdrop click dismisses modal
+  document.querySelectorAll('.modal-backdrop').forEach(bd => {
+    bd.addEventListener('click', (e) => {
+      if (e.target === bd) {
+        closeModal(bd.id);
+      }
+    });
+  });
+
+  // Global keyboard trap and Escape dismissal
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+      if (openModals.length > 0) {
+        const topModal = openModals[openModals.length - 1];
+        closeModal(topModal.id);
+      }
+    } else if (e.key === 'Tab') {
+      const openModals = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+      if (openModals.length > 0) {
+        const topModal = openModals[openModals.length - 1];
+        const focusables = Array.from(topModal.querySelectorAll('input:not([type="hidden"]), select, textarea, button:not([disabled]), [tabindex="0"]'));
+        if (focusables.length > 0) {
+          const first = focusables[0];
+          const last = focusables[focusables.length - 1];
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault();
+            last.focus();
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault();
+            first.focus();
+          }
+        }
+      }
+    }
+  });
 }
 
 // HELPERS
 function getCategoryIconName(catName) {
   const cat = appState.categories.find(c => c.name === catName);
   return cat ? (cat.icon || 'package') : 'package';
-}
-
-function closeModal(id) {
-  document.getElementById(id)?.classList.add('hidden');
 }
 
 function quickRestockPrompt(id, qty) {
