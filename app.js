@@ -316,17 +316,19 @@ function applyTheme(theme) {
   appState.theme = theme;
   localStorage.setItem('pulseguard_theme', theme);
 
-  const body = document.body;
+  const metaTheme = document.getElementById('theme-color-meta');
   if (theme === 'light') {
     body.classList.remove('theme-dark');
     body.classList.add('theme-light');
     const label = document.getElementById('theme-label-text');
     if (label) label.innerText = "Light Mode";
+    if (metaTheme) metaTheme.setAttribute('content', '#cfd8e3');
   } else {
     body.classList.remove('theme-light');
     body.classList.add('theme-dark');
     const label = document.getElementById('theme-label-text');
     if (label) label.innerText = "Dark Mode";
+    if (metaTheme) metaTheme.setAttribute('content', '#080c16');
   }
 
   if (pnlChartInstance) {
@@ -929,12 +931,34 @@ function renderProductFocusedChart() {
         legend: { labels: { color: labelColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: 800 } } }
       },
       scales: {
-        x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: 'Plus Jakarta Sans', size: 11, weight: 700 } } },
+        x: {
+          grid: { color: gridColor },
+          ticks: {
+            color: tickColor,
+            font: { family: 'Plus Jakarta Sans', size: window.innerWidth < 640 ? 10 : 11, weight: 700 },
+            maxRotation: window.innerWidth < 640 ? 45 : 0,
+            minRotation: window.innerWidth < 640 ? 25 : 0,
+            callback: function(val) {
+              const fullLabel = this.getLabelForValue(val);
+              if (window.innerWidth < 480) {
+                const shortMap = {
+                  'Buying Cost (₹)': 'Cost',
+                  'Selling Price (₹)': 'Price',
+                  'Profit Per Unit (₹)': 'Margin',
+                  'Weekly Profit (₹)': 'Profit',
+                  '7d Loss If Out (₹)': '7d Loss'
+                };
+                return shortMap[fullLabel] || fullLabel;
+              }
+              return fullLabel;
+            }
+          }
+        },
         y: {
           grid: { color: gridColor },
           ticks: {
             color: tickColor,
-            font: { family: 'JetBrains Mono', size: 11, weight: 700 },
+            font: { family: 'JetBrains Mono', size: window.innerWidth < 640 ? 10 : 11, weight: 700 },
             callback: v => '₹' + v.toLocaleString('en-IN')
           }
         }
@@ -972,9 +996,9 @@ function renderAllProductsLedger() {
           <div class="flex justify-between text-red"><span>Risk If Unattended:</span><span>-₹${parseFloat(m.upcomingLoss7Days).toLocaleString('en-IN')}</span></div>
         </div>
 
-        <div class="pt-2 border-t border-white-5 flex justify-between items-center gap-2">
+        <div class="ledger-card-footer pt-2 border-t border-white-5">
           <span class="${m.badgeClass}">${m.timeLeftBadge}</span>
-          <div class="flex items-center gap-1.5">
+          <div class="flex items-center gap-1.5 ledger-card-actions">
             <button class="btn btn-ghost btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit Stock Details">
               <i data-lucide="edit-3" class="w-3.5 h-3.5 text-cyan"></i>
               <span>Edit</span>
@@ -1102,24 +1126,28 @@ function renderProductsPage() {
             </div>
           </div>
 
-          <div class="flex items-center gap-4 text-xs font-mono">
+          <div class="velocity-telemetry-row flex items-center gap-4 text-xs font-mono">
             <div><span class="text-muted block text-[10px]">CURRENT STOCK:</span><strong class="${p.stock <= 3 ? 'text-red' : 'text-white'}">${p.stock} units</strong></div>
             <div><span class="text-muted block text-[10px]">DAILY SPEED:</span><strong class="text-cyan">${m.dailyBurn}/d</strong></div>
             <div><span class="text-muted block text-[10px]">DEPLETION:</span><strong class="${m.stage === 'STAGE3' ? 'text-red' : (m.stage === 'STAGE2' ? 'text-orange' : 'text-green')}">${m.timeFormatted}</strong></div>
           </div>
 
-          <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-            <label class="text-xs text-muted font-mono" for="inp-sales-${p.id}">Last Week Sales:</label>
-            <input type="number" step="0.5" min="1" id="inp-sales-${p.id}" value="${p.lastWeekSales}" class="v-input-field" />
-            <button class="btn btn-ghost btn-sm" onclick="saveWeeklySalesEntry('${p.id}')">Save</button>
-            <button class="btn btn-primary btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Parameters For #${escapeHtml(p.code)}">
-              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
-              <span>Edit</span>
-            </button>
-            <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${escapeHtml(p.code)}">
-              <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
-              <span>Delete</span>
-            </button>
+          <div class="velocity-actions-row flex items-center gap-2 flex-wrap">
+            <div class="flex items-center gap-2 flex-1 min-w-[200px]">
+              <label class="text-xs text-muted font-mono whitespace-nowrap" for="inp-sales-${p.id}">Last Wk:</label>
+              <input type="number" step="0.5" min="1" id="inp-sales-${p.id}" value="${p.lastWeekSales}" class="v-input-field" />
+              <button class="btn btn-ghost btn-sm" onclick="saveWeeklySalesEntry('${p.id}')">Save</button>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-primary btn-sm" onclick="openEditStockModal('${p.id}')" title="Edit All Parameters For #${escapeHtml(p.code)}">
+                <i data-lucide="edit-3" class="w-3.5 h-3.5"></i>
+                <span>Edit</span>
+              </button>
+              <button class="btn btn-ghost btn-sm btn-delete" onclick="promptDeleteStock('${p.id}')" title="Delete Stock #${escapeHtml(p.code)}">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5 text-red"></i>
+                <span>Delete</span>
+              </button>
+            </div>
           </div>
         </div>
       `;
@@ -2014,6 +2042,7 @@ function openModal(id) {
   if (!modal) return;
   lastFocusedElement = document.activeElement;
   modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
 
   requestAnimationFrame(() => {
     const focusable = modal.querySelectorAll('input:not([type="hidden"]), select, textarea, button:not([disabled])');
@@ -2028,6 +2057,10 @@ function closeModal(id) {
   const modal = document.getElementById(id);
   if (modal) {
     modal.classList.add('hidden');
+  }
+  const remainingOpen = document.querySelectorAll('.modal-backdrop:not(.hidden)');
+  if (remainingOpen.length === 0) {
+    document.body.classList.remove('modal-open');
   }
   if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
     try {
