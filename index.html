@@ -17,6 +17,17 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   
   <link rel="stylesheet" href="style.css" />
+  <script>
+    (function() {
+      try {
+        var t = localStorage.getItem('pulseguard_theme') || 'dark';
+        if (t === 'light') {
+          document.documentElement.classList.remove('dark');
+          document.documentElement.classList.add('light');
+        }
+      } catch (e) {}
+    })();
+  </script>
 </head>
 <body class="theme-dark">
 
@@ -38,18 +49,18 @@
           </div>
           <div class="brand-text-block">
             <span class="brand-name">PULSE<span class="brand-accent">GUARD</span></span>
-            <span class="brand-tagline">STORE OS 6.0</span>
+            <span class="brand-tagline">RESTAURANT & BAR OPS</span>
           </div>
         </div>
 
         <!-- Dark / Light Mode Switcher -->
-        <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Switch Light or Dark Theme" aria-label="Switch between light and dark theme">
+        <button class="theme-toggle-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="Currently in Dark Mode. Click to switch to Light Mode" aria-label="Switch between light and dark theme">
           <div class="flex items-center gap-2">
-            <i data-lucide="sun" class="sun-icon" aria-hidden="true"></i>
             <i data-lucide="moon" class="moon-icon" aria-hidden="true"></i>
+            <i data-lucide="sun" class="sun-icon" aria-hidden="true"></i>
             <span class="theme-toggle-label" id="theme-label-text">Dark Mode</span>
           </div>
-          <span class="theme-micro-pill">Theme</span>
+          <span class="theme-micro-pill" id="theme-micro-pill">Dark</span>
         </button>
       </div>
 
@@ -77,11 +88,11 @@
           <span class="nav-micro-tag">Auto-Deduct</span>
         </button>
 
-        <!-- FORCE COPILOT DOCK TOGGLE BUTTON (Opens side grid box without obscuring window) -->
-        <button class="nav-btn force-copilot-nav-btn active" id="sidebar-btn-force" onclick="toggleForceDock()" aria-label="Toggle FORCE Copilot Side Grid" aria-expanded="true" aria-controls="force-side-dock">
+        <!-- OPERATIONS ASSISTANT DOCK TOGGLE BUTTON (Opens side grid box without obscuring window) -->
+        <button class="nav-btn force-copilot-nav-btn active" id="sidebar-btn-force" onclick="toggleForceDock()" aria-label="Toggle Operations Assistant Side Grid" aria-expanded="true" aria-controls="force-side-dock">
           <div class="copilot-pulse-dot" aria-hidden="true"></div>
-          <span class="nav-text font-bold">FORCE Copilot</span>
-          <span class="copilot-friend-tag">Side Grid</span>
+          <span class="nav-text font-bold">Ops Assistant</span>
+          <span class="copilot-friend-tag">Active</span>
         </button>
       </nav>
 
@@ -116,9 +127,9 @@
             <span class="brand-name">PULSE<span class="brand-accent">GUARD</span></span>
           </div>
           <div class="flex items-center gap-2">
-            <button class="icon-action-btn" onclick="toggleTheme()" title="Toggle Theme" aria-label="Switch between light and dark theme">
-              <i data-lucide="sun" class="sun-icon" aria-hidden="true"></i>
+            <button class="icon-action-btn" id="mobile-theme-toggle-btn" onclick="toggleTheme()" title="Currently in Dark Mode. Click to switch to Light Mode" aria-label="Switch between light and dark theme">
               <i data-lucide="moon" class="moon-icon" aria-hidden="true"></i>
+              <i data-lucide="sun" class="sun-icon" aria-hidden="true"></i>
             </button>
             <button class="icon-action-btn" onclick="openBillingModal()" title="Open POS Billing" aria-label="Open POS Billing"><i data-lucide="receipt" aria-hidden="true"></i></button>
             <button class="icon-action-btn" onclick="toggleForceDock()" title="Toggle FORCE Copilot" aria-label="Toggle FORCE Copilot side grid" aria-expanded="true" aria-controls="force-side-dock"><i data-lucide="bot" aria-hidden="true"></i></button>
@@ -186,7 +197,6 @@
           <!-- Section Banner -->
           <div class="section-title-wrap">
             <div>
-              <span class="pastel-badge-tag">INVENTORY DEFENSE RADAR</span>
               <h1 class="pastel-heading" id="alerts-heading-text">Critical Low-Stock Alerts</h1>
               <p class="pastel-sub" id="alerts-sub-text">
                 Items depleting within 7 days based on sales velocity. Shortages under 24 hours are marked in exact hours. Mail dealer to mark problem solved and clear from feed.
@@ -211,7 +221,6 @@
         <section id="page-insights" class="page-pane">
           <div class="section-title-wrap">
             <div>
-              <span class="pastel-badge-tag">REVENUE & MARGIN INTELLIGENCE</span>
               <h1 class="pastel-heading">Profit & Loss Analytics</h1>
               <p class="pastel-sub">Inspect individual product economics, buying costs, selling prices, unit margins in ₹ & %, and weekly realized profits.</p>
             </div>
@@ -277,7 +286,6 @@
         <section id="page-products" class="page-pane">
           <div class="section-title-wrap">
             <div>
-              <span class="pastel-badge-tag">STOCK INVENTORY</span>
               <h1 class="pastel-heading">Store Stocks & Categories</h1>
               <p class="pastel-sub">All store items sorted by category and 4-digit code. Every stock box includes instant Edit and Delete actions.</p>
             </div>
@@ -330,7 +338,6 @@
         <section id="page-admin" class="page-pane">
           <div class="section-title-wrap">
             <div>
-              <span class="pastel-badge-tag">STORE HEADQUARTERS</span>
               <h1 class="pastel-heading">Admin, Accounts & Shift Schedules</h1>
               <p class="pastel-sub">Store telemetry, customizable shift schedule roster, and draft accounting statements.</p>
             </div>
@@ -488,24 +495,24 @@
       </main>
 
       <!-- FORCE AI COPILOT DOCKED SIDE GRID (Non-blocking companion box) -->
-      <aside class="force-side-dock" id="force-side-dock" aria-label="FORCE Copilot Assistant">
+      <aside class="force-side-dock" id="force-side-dock" aria-label="Operations Assistant">
         <!-- Dock Header -->
         <div class="force-dock-header">
           <div class="flex items-center gap-2.5">
             <div class="force-avatar-pill" aria-hidden="true">
-              <i data-lucide="bot" class="w-4 h-4 text-purple"></i>
+              <i data-lucide="sparkles" class="w-4 h-4 text-cyan"></i>
             </div>
             <div>
               <div class="flex items-center gap-1.5">
-                <h3 class="force-dock-title">FORCE Copilot</h3>
-                <span class="force-live-badge"><span class="copilot-pulse-dot" aria-hidden="true"></span> Live</span>
+                <h3 class="force-dock-title">Operations Assistant</h3>
+                <span class="force-live-badge"><span class="copilot-pulse-dot" aria-hidden="true"></span> Active</span>
               </div>
-              <span class="force-dock-sub">Store Operations Assistant</span>
+              <span class="force-dock-sub">Inventory & Shift Intelligence</span>
             </div>
           </div>
 
           <div class="flex items-center gap-1">
-            <button class="dock-tool-btn" onclick="clearForceChat()" title="Reset Chat Thread" aria-label="Reset chat thread">
+            <button class="dock-tool-btn" onclick="clearForceChat()" title="Reset Log Thread" aria-label="Reset log thread">
               <i data-lucide="rotate-ccw" class="w-3.5 h-3.5" aria-hidden="true"></i>
             </button>
             <button class="dock-tool-btn" onclick="toggleForceDock(false)" title="Collapse Side Dock" aria-label="Collapse side dock">
@@ -516,25 +523,25 @@
 
         <!-- Quick Interactive Prompt Chips -->
         <div class="force-quick-prompts" role="toolbar" aria-label="Quick Prompt Options">
-          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('What stock is most critical right now?')">⚡ Critical Alerts</button>
-          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Which stock is losing the most money?')">💰 Highest Loss</button>
-          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Who is on duty right now?')">👤 Active Shift</button>
-          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('How is our overall profit and revenue looking?')">📊 P&amp;L Health</button>
-          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Recommend wholesale restock orders')">📦 Restock Advice</button>
+          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('What stock is most critical right now?')">Critical Alerts</button>
+          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Which stock is losing the most money?')">Highest Loss</button>
+          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Who is on duty right now?')">Active Shift</button>
+          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('How is our overall profit and revenue looking?')">P&amp;L Health</button>
+          <button type="button" class="quick-prompt-pill" onclick="sendQuickPrompt('Recommend wholesale restock orders')">Restock Orders</button>
         </div>
 
         <!-- Live Chat Thread -->
-        <div class="force-chat-thread" id="force-chat-container" role="log" aria-live="polite" aria-relevant="additions" aria-label="FORCE Copilot Chat Log">
+        <div class="force-chat-thread" id="force-chat-container" role="log" aria-live="polite" aria-relevant="additions" aria-label="Operations Assistant Log">
           <div class="chat-bubble bot-bubble">
-            <span class="chat-speaker">FORCE // STORE OPERATIONS SPECIALIST</span>
-            <p>Hey there! I'm monitoring our store inventory and cash flows live alongside your workspace. Depletions under 24 hours are tracked in exact hours. As you resolve shortages, restock, or bill, I'll assist and track your wins in real time!</p>
+            <span class="chat-speaker">OPERATIONS LOG // KITCHEN & BAR</span>
+            <p>Welcome! Monitoring inventory velocity, depletion horizons, and shift schedules in real time. Items under 24 hours to stockout are marked in exact hours. Inquire about any 4-digit code or restock status.</p>
           </div>
         </div>
 
         <!-- User Chat Input Bar -->
         <div class="force-input-container">
-          <input type="text" id="force-user-input" placeholder="Ask FORCE or enter 4-digit code..." class="form-input" aria-label="Ask FORCE Copilot" onkeydown="if(event.key === 'Enter') handleSendForceChat()" />
-          <button class="btn btn-primary" onclick="handleSendForceChat()" aria-label="Send message to FORCE Copilot"><i data-lucide="send" class="w-4 h-4" aria-hidden="true"></i></button>
+          <input type="text" id="force-user-input" placeholder="Query stock code (e.g. 1001) or ask inventory status..." class="form-input" aria-label="Query Operations Assistant" onkeydown="if(event.key === 'Enter') handleSendForceChat()" />
+          <button class="btn btn-primary" onclick="handleSendForceChat()" aria-label="Send query to Operations Assistant"><i data-lucide="send" class="w-4 h-4" aria-hidden="true"></i></button>
         </div>
       </aside>
 
@@ -571,11 +578,11 @@
 
   </div><!-- /.app-layout -->
 
-  <!-- Floating FORCE Copilot Trigger Pill (Visible when side dock is collapsed) -->
-  <button id="force-dock-pill" class="force-dock-pill hidden" onclick="toggleForceDock(true)" title="Open FORCE Copilot Grid" aria-label="Open FORCE Copilot Grid" aria-expanded="false" aria-controls="force-side-dock">
+  <!-- Floating Operations Assistant Trigger Pill (Visible when side dock is collapsed) -->
+  <button id="force-dock-pill" class="force-dock-pill hidden" onclick="toggleForceDock(true)" title="Open Operations Assistant" aria-label="Open Operations Assistant" aria-expanded="false" aria-controls="force-side-dock">
     <div class="copilot-pulse-dot" aria-hidden="true"></div>
-    <i data-lucide="bot" class="w-4 h-4" aria-hidden="true"></i>
-    <span>FORCE AI</span>
+    <i data-lucide="sparkles" class="w-4 h-4 text-cyan" aria-hidden="true"></i>
+    <span>Ops Assistant</span>
   </button>
 
   <!-- ================================================================= -->

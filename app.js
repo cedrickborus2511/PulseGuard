@@ -292,7 +292,28 @@ function initApp() {
   setupAccessibleModalEvents();
 
   renderAll();
+  initHorizontalScrollWheels();
   refreshIcons();
+}
+
+function initHorizontalScrollWheels() {
+  const scrollers = [
+    document.getElementById('inventory-category-pills'),
+    document.querySelector('.stories-strip-wrapper')
+  ];
+
+  scrollers.forEach(el => {
+    if (!el || el.dataset.wheelBound) return;
+    el.dataset.wheelBound = "true";
+    el.addEventListener('wheel', (evt) => {
+      if (evt.deltaY !== 0 && !evt.shiftKey) {
+        if (el.scrollWidth > el.clientWidth) {
+          evt.preventDefault();
+          el.scrollBy({ left: evt.deltaY * 1.25, behavior: 'auto' });
+        }
+      }
+    }, { passive: false });
+  });
 }
 
 function saveState() {
@@ -314,21 +335,52 @@ function toggleTheme() {
 
 function applyTheme(theme) {
   appState.theme = theme;
-  localStorage.setItem('pulseguard_theme', theme);
+  safeStorageSet('pulseguard_theme', theme);
 
   const metaTheme = document.getElementById('theme-color-meta');
+  const label = document.getElementById('theme-label-text');
+  const microPill = document.getElementById('theme-micro-pill');
+  const toggleBtn = document.getElementById('theme-toggle-btn');
+  const mobileToggleBtn = document.getElementById('mobile-theme-toggle-btn');
+
   if (theme === 'light') {
-    body.classList.remove('theme-dark');
-    body.classList.add('theme-light');
-    const label = document.getElementById('theme-label-text');
+    document.body.classList.remove('theme-dark');
+    document.body.classList.add('theme-light');
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+
     if (label) label.innerText = "Light Mode";
-    if (metaTheme) metaTheme.setAttribute('content', '#cfd8e3');
+    if (microPill) microPill.innerText = "Light";
+    if (metaTheme) metaTheme.setAttribute('content', '#f4f4f5');
+
+    const lightTooltip = "Currently in Light Mode. Click to switch to Dark Mode";
+    if (toggleBtn) {
+      toggleBtn.setAttribute('title', lightTooltip);
+      toggleBtn.setAttribute('aria-label', lightTooltip);
+    }
+    if (mobileToggleBtn) {
+      mobileToggleBtn.setAttribute('title', lightTooltip);
+      mobileToggleBtn.setAttribute('aria-label', lightTooltip);
+    }
   } else {
-    body.classList.remove('theme-light');
-    body.classList.add('theme-dark');
-    const label = document.getElementById('theme-label-text');
+    document.body.classList.remove('theme-light');
+    document.body.classList.add('theme-dark');
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+
     if (label) label.innerText = "Dark Mode";
-    if (metaTheme) metaTheme.setAttribute('content', '#080c16');
+    if (microPill) microPill.innerText = "Dark";
+    if (metaTheme) metaTheme.setAttribute('content', '#121316');
+
+    const darkTooltip = "Currently in Dark Mode. Click to switch to Light Mode";
+    if (toggleBtn) {
+      toggleBtn.setAttribute('title', darkTooltip);
+      toggleBtn.setAttribute('aria-label', darkTooltip);
+    }
+    if (mobileToggleBtn) {
+      mobileToggleBtn.setAttribute('title', darkTooltip);
+      mobileToggleBtn.setAttribute('aria-label', darkTooltip);
+    }
   }
 
   if (pnlChartInstance) {
@@ -893,9 +945,9 @@ function renderProductFocusedChart() {
   if (pnlChartInstance) pnlChartInstance.destroy();
 
   const isLight = appState.theme === 'light';
-  const labelColor = isLight ? '#050811' : '#f1f5f9';
-  const tickColor = isLight ? '#0f172a' : '#94a3b8';
-  const gridColor = isLight ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255,255,255,0.06)';
+  const labelColor = isLight ? '#18181b' : '#f4f4f5';
+  const tickColor = isLight ? '#52525b' : '#a1a1aa';
+  const gridColor = isLight ? 'rgba(0, 0, 0, 0.06)' : 'rgba(255, 255, 255, 0.06)';
 
   pnlChartInstance = new Chart(ctx, {
     type: 'bar',
@@ -911,15 +963,15 @@ function renderProductFocusedChart() {
           parseFloat(m.upcomingLoss7Days)
         ],
         backgroundColor: [
-          isLight ? 'rgba(100, 116, 139, 0.45)' : 'rgba(148, 163, 184, 0.4)',
-          isLight ? 'rgba(2, 106, 162, 0.6)' : 'rgba(56, 189, 248, 0.45)',
-          isLight ? 'rgba(21, 128, 61, 0.65)' : 'rgba(74, 222, 128, 0.55)',
-          isLight ? 'rgba(21, 128, 61, 0.85)' : 'rgba(74, 222, 128, 0.8)',
-          isLight ? 'rgba(153, 27, 27, 0.8)' : 'rgba(248, 113, 113, 0.7)'
+          isLight ? 'rgba(113, 113, 122, 0.45)' : 'rgba(113, 113, 122, 0.4)',
+          isLight ? 'rgba(194, 65, 12, 0.65)' : 'rgba(234, 88, 12, 0.55)',
+          isLight ? 'rgba(21, 128, 61, 0.7)' : 'rgba(16, 185, 129, 0.6)',
+          isLight ? 'rgba(21, 128, 61, 0.9)' : 'rgba(16, 185, 129, 0.85)',
+          isLight ? 'rgba(185, 28, 28, 0.85)' : 'rgba(239, 68, 68, 0.75)'
         ],
         borderColor: isLight 
-          ? ['#64748b', '#026aa2', '#15803d', '#15803d', '#991b1b']
-          : ['#94a3b8', '#38bdf8', '#4ade80', '#4ade80', '#f87171'],
+          ? ['#71717a', '#c2410c', '#15803d', '#15803d', '#b91c1c']
+          : ['#a1a1aa', '#ea580c', '#10b981', '#10b981', '#ef4444'],
         borderWidth: 1.5,
         borderRadius: 8
       }]
@@ -1763,8 +1815,8 @@ function clearForceChat() {
   if (feed) {
     feed.innerHTML = `
       <div class="chat-bubble bot-bubble">
-        <span class="chat-speaker">FORCE // STORE OPERATIONS SPECIALIST</span>
-        <p>Chat thread refreshed! I'm monitoring store inventory and cash flows live alongside your workspace. Depletions under 24 hours are tracked in exact hours. As you resolve shortages, restock, or bill, I'll track your wins in real time!</p>
+        <span class="chat-speaker">OPERATIONS LOG // KITCHEN & BAR</span>
+        <p>Log thread cleared. Monitoring live inventory velocity, burn rates, and shift coverage in real time.</p>
       </div>
     `;
     refreshIcons();
@@ -1937,11 +1989,11 @@ function handleSendForceChat() {
         }
       } else {
         reply = `
-          Hey! I'm your realistic store operations copilot. Here are quick things I can help you with right now:
+          Ready to assist with inventory, order logs, and shift rosters. Quick queries:
           <div class="mt-1.5 text-xs space-y-1">
-            <div>&bull; Type any 4-digit code (e.g. <code>1001</code>) for full unit metrics, burn rate, and hours left</div>
+            <div>&bull; Enter any 4-digit stock code (e.g. <code>1001</code>) for stock level, burn rate, and depletion horizon</div>
             <div>&bull; Ask <em>"Which stocks run out in hours?"</em> for immediate depletion alerts</div>
-            <div>&bull; Ask <em>"Who is on duty?"</em> to check shift schedules</div>
+            <div>&bull; Ask <em>"Who is on duty?"</em> to inspect active shift coverage</div>
             <div>&bull; Ask <em>"Store financial health"</em> for weekly margins and revenue breakdown</div>
           </div>
         `;
@@ -1950,7 +2002,7 @@ function handleSendForceChat() {
 
     feed.innerHTML += `
       <div class="chat-bubble bot-bubble">
-        <span class="chat-speaker">FORCE // STORE OPERATIONS SPECIALIST</span>
+        <span class="chat-speaker">OPERATIONS LOG // KITCHEN & BAR</span>
         <div>${reply}</div>
       </div>
     `;
