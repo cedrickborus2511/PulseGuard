@@ -370,7 +370,7 @@ function applyTheme(theme) {
 
     if (label) label.innerText = "Dark Mode";
     if (microPill) microPill.innerText = "Dark";
-    if (metaTheme) metaTheme.setAttribute('content', '#121316');
+    if (metaTheme) metaTheme.setAttribute('content', '#09090b');
 
     const darkTooltip = "Currently in Dark Mode. Click to switch to Light Mode";
     if (toggleBtn) {
@@ -964,14 +964,14 @@ function renderProductFocusedChart() {
         ],
         backgroundColor: [
           isLight ? 'rgba(113, 113, 122, 0.45)' : 'rgba(113, 113, 122, 0.4)',
-          isLight ? 'rgba(194, 65, 12, 0.65)' : 'rgba(234, 88, 12, 0.55)',
+          isLight ? 'rgba(37, 99, 235, 0.65)' : 'rgba(59, 130, 246, 0.55)',
           isLight ? 'rgba(21, 128, 61, 0.7)' : 'rgba(16, 185, 129, 0.6)',
           isLight ? 'rgba(21, 128, 61, 0.9)' : 'rgba(16, 185, 129, 0.85)',
           isLight ? 'rgba(185, 28, 28, 0.85)' : 'rgba(239, 68, 68, 0.75)'
         ],
         borderColor: isLight 
-          ? ['#71717a', '#c2410c', '#15803d', '#15803d', '#b91c1c']
-          : ['#a1a1aa', '#ea580c', '#10b981', '#10b981', '#ef4444'],
+          ? ['#71717a', '#2563eb', '#15803d', '#15803d', '#b91c1c']
+          : ['#a1a1aa', '#3b82f6', '#10b981', '#10b981', '#ef4444'],
         borderWidth: 1.5,
         borderRadius: 8
       }]
@@ -980,14 +980,14 @@ function renderProductFocusedChart() {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: labelColor, font: { family: 'Plus Jakarta Sans', size: 12, weight: 800 } } }
+        legend: { labels: { color: labelColor, font: { family: 'Inter', size: 12, weight: 800 } } }
       },
       scales: {
         x: {
           grid: { color: gridColor },
           ticks: {
             color: tickColor,
-            font: { family: 'Plus Jakarta Sans', size: window.innerWidth < 640 ? 10 : 11, weight: 700 },
+            font: { family: 'Inter', size: window.innerWidth < 640 ? 10 : 11, weight: 700 },
             maxRotation: window.innerWidth < 640 ? 45 : 0,
             minRotation: window.innerWidth < 640 ? 25 : 0,
             callback: function(val) {

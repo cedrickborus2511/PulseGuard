@@ -6,33 +6,46 @@
    Customizable Shift Roster & Direct Wholesale Ordering
    ========================================================================== */
 
-/* 1. DESIGN TOKENS & RESTAURANT HOSPITALITY PALETTE */
+/* 1. DESIGN TOKENS & MINIMALIST RESTAURANT OS PALETTE */
 :root {
-  --font-display: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Sophisticated Hospitality Tones */
-  --copper-primary: #ea580c; /* Warm restaurant amber-copper */
-  --copper-hover: #f97316;
-  --copper-bg: rgba(234, 88, 12, 0.12);
-  --copper-border: rgba(234, 88, 12, 0.35);
+  /* 6 Core Modern Minimalist Tokens (Neutral Tones + Single Accent) */
+  --bg-app: #09090b;          /* Neutral Deep Zinc canvas */
+  --bg-surface: #18181b;      /* Tactile surface card */
+  --text-primary: #f4f4f5;    /* High-contrast crisp text (WCAG AAA) */
+  --text-secondary: #a1a1aa;  /* Balanced secondary zinc (WCAG AA) */
+  --border: #27272a;          /* Clean subtle border */
+  --accent: #3b82f6;          /* Singular precision Cobalt Blue */
 
-  --culinary-green: #10b981; /* Fresh kitchen emerald */
+  /* Functional & State Tokens derived from Core Palette */
+  --accent-hover: #2563eb;
+  --accent-active: #1d4ed8;
+  --accent-subtle: rgba(59, 130, 246, 0.12);
+  --accent-border: rgba(59, 130, 246, 0.35);
+
+  --copper-primary: var(--accent);
+  --copper-hover: var(--accent-hover);
+  --copper-bg: var(--accent-subtle);
+  --copper-border: var(--accent-border);
+
+  --culinary-green: #10b981;
   --culinary-green-hover: #34d399;
   --culinary-green-bg: rgba(16, 185, 129, 0.12);
   --culinary-green-border: rgba(16, 185, 129, 0.35);
 
-  --culinary-amber: #f59e0b; /* Honey amber */
+  --culinary-amber: #f59e0b;
   --culinary-amber-hover: #fbbf24;
   --culinary-amber-bg: rgba(245, 158, 11, 0.12);
   --culinary-amber-border: rgba(245, 158, 11, 0.35);
 
-  --culinary-orange: #f97316; /* Warm persimmon */
+  --culinary-orange: #f97316;
   --culinary-orange-hover: #fb923c;
   --culinary-orange-bg: rgba(249, 115, 22, 0.12);
   --culinary-orange-border: rgba(249, 115, 22, 0.35);
 
-  --culinary-red: #ef4444; /* Kitchen tomato red */
+  --culinary-red: #ef4444;
   --culinary-red-hover: #f87171;
   --culinary-red-bg: rgba(239, 68, 68, 0.12);
   --culinary-red-border: rgba(239, 68, 68, 0.35);
@@ -49,72 +62,79 @@
 
 /* DARK MODE: WARM OBSIDIAN & TACTILE RESTAURANT SLATE (NIGHT SHIFT & KITCHEN) */
 body.theme-dark {
-  --bg-app: #121316; /* Deep warm obsidian - zero eye strain, zero cyber-blue */
-  --bg-sidebar: #17181d; /* Solid, grounded back-of-house sidebar */
-  --bg-card: #1c1d22; /* Solid tactile card surface - zero gimmicky blur */
-  --bg-surface: #18191e;
-  --bg-surface-elevated: #23252c;
-  --bg-input: #15161a;
+  --bg-app: #09090b;
+  --bg-sidebar: var(--bg-surface);
+  --bg-card: var(--bg-surface);
+  --bg-surface: #18181b;
+  --bg-surface-elevated: #27272a;
+  --bg-input: #121215;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.14);
-  --border-focus: #ea580c;
-  --border-divider: rgba(255, 255, 255, 0.06);
+  --border-subtle: var(--border);
+  --border-medium: #3f3f46;
+  --border-focus: var(--accent);
+  --border-divider: var(--border);
 
-  --text-primary: #f4f4f5; /* Warm crisp white */
-  --text-secondary: #a1a1aa; /* Warm neutral gray */
-  --text-muted: #71717a; /* Neutral slate */
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
 
-  --color-cyan: #ea580c; /* Primary brand accent: Warm Amber-Copper */
-  --color-green: #10b981; /* Kitchen Emerald */
-  --color-amber: #f59e0b; /* Warm Honey Amber */
-  --color-orange: #f97316; /* Rust Orange */
-  --color-red: #ef4444; /* Culinary Crimson */
-  --color-purple: #a1a1aa; /* Neutral warm slate (replaces neon purple) */
+  --color-cyan: var(--accent);
+  --color-green: #10b981;
+  --color-amber: #f59e0b;
+  --color-orange: #f97316;
+  --color-red: #ef4444;
+  --color-purple: var(--text-secondary);
 
-  --badge-s1-bg: rgba(245, 158, 11, 0.14);
+  --badge-s1-bg: rgba(245, 158, 11, 0.12);
   --badge-s1-text: #fbbf24;
-  --badge-s1-border: rgba(245, 158, 11, 0.35);
+  --badge-s1-border: rgba(245, 158, 11, 0.3);
 
-  --badge-s2-bg: rgba(249, 115, 22, 0.14);
+  --badge-s2-bg: rgba(249, 115, 22, 0.12);
   --badge-s2-text: #fb923c;
-  --badge-s2-border: rgba(249, 115, 22, 0.35);
+  --badge-s2-border: rgba(249, 115, 22, 0.3);
 
-  --badge-s3-bg: rgba(239, 68, 68, 0.15);
+  --badge-s3-bg: rgba(239, 68, 68, 0.12);
   --badge-s3-text: #f87171;
-  --badge-s3-border: rgba(239, 68, 68, 0.4);
+  --badge-s3-border: rgba(239, 68, 68, 0.3);
 
-  --badge-hl-bg: rgba(16, 185, 129, 0.14);
+  --badge-hl-bg: rgba(16, 185, 129, 0.12);
   --badge-hl-text: #34d399;
-  --badge-hl-border: rgba(16, 185, 129, 0.35);
+  --badge-hl-border: rgba(16, 185, 129, 0.3);
 
-  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
 /* LIGHT MODE: CRISP LINEN & WARM STONE SLATE (DAY SHIFT & FLOOR MANAGEMENT) */
 body.theme-light {
-  --bg-app: #f4f4f5; /* Soothing warm stone/zinc canvas - zero glare! */
-  --bg-sidebar: #ffffff; /* Clean solid restaurant sidebar */
-  --bg-card: #ffffff; /* Solid clean card surface */
-  --bg-surface: #f9f9fb; /* Elevated surface */
-  --bg-surface-elevated: #f0f0f3; /* Interactive element hover */
-  --bg-input: #ffffff; /* Pure clean input fields */
+  --bg-app: #f4f4f5;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f4f4f5;
+  --bg-input: #ffffff;
 
-  --border-subtle: #e4e4e7; /* Clean, crisp border (Zinc 200) */
+  --border: #e4e4e7;
+  --border-subtle: var(--border);
   --border-medium: #d4d4d8;
-  --border-focus: #c2410c;
-  --border-divider: #f4f4f5;
+  --border-focus: var(--accent);
+  --border-divider: var(--border);
 
-  --text-primary: #18181b; /* Deep rich charcoal (Zinc 900) - ultra legible */
-  --text-secondary: #52525b; /* Zinc 600 */
-  --text-muted: #71717a; /* Zinc 500 */
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-active: #1e40af;
+  --accent-subtle: rgba(37, 99, 235, 0.08);
+  --accent-border: rgba(37, 99, 235, 0.25);
 
-  --color-cyan: #c2410c; /* Deep terracotta amber / bistro copper */
-  --color-green: #15803d; /* Forest culinary green */
-  --color-amber: #b45309; /* Deep honey amber */
-  --color-orange: #c2410c; /* Warm terracotta */
-  --color-red: #b91c1c; /* Deep kitchen crimson */
-  --color-purple: #52525b; /* Clean neutral slate */
+  --text-primary: #09090b;
+  --text-secondary: #52525b;
+  --text-muted: #71717a;
+
+  --color-cyan: var(--accent);
+  --color-green: #15803d;
+  --color-amber: #b45309;
+  --color-orange: #c2410c;
+  --color-red: #b91c1c;
+  --color-purple: var(--text-secondary);
 
   --badge-s1-bg: #fffbeb;
   --badge-s1-text: #92400e;
@@ -132,7 +152,7 @@ body.theme-light {
   --badge-hl-text: #166534;
   --badge-hl-border: #bbf7d0;
 
-  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 /* 2. BASE RESETS & SLEEK MINIMAL SCROLLBAR SYSTEM */
@@ -200,11 +220,11 @@ button, a, input, select, textarea, [role="button"] {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(234, 88, 12, 0.65);
+  background-color: var(--accent);
 }
 
 ::-webkit-scrollbar-thumb:active {
-  background-color: rgba(234, 88, 12, 0.95);
+  background-color: var(--accent-hover);
 }
 
 ::-webkit-scrollbar-corner {
@@ -217,11 +237,11 @@ body.theme-light ::-webkit-scrollbar-thumb {
 }
 
 body.theme-light ::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(194, 65, 12, 0.7);
+  background-color: var(--accent);
 }
 
 body.theme-light ::-webkit-scrollbar-thumb:active {
-  background-color: rgba(194, 65, 12, 0.95);
+  background-color: var(--accent-hover);
 }
 
 /* ACCESSIBILITY: SKIP TO CONTENT */
@@ -489,7 +509,7 @@ body.theme-light .btn-ghost:hover {
 }
 body.theme-light .btn-success {
   background: rgba(21, 128, 61, 0.16);
-  color: #15803d;
+  color: var(--color-green);
   border: 1.5px solid rgba(21, 128, 61, 0.5);
 }
 
@@ -571,14 +591,14 @@ body.theme-dark .logo-shield-path {
   stroke: var(--color-cyan);
 }
 body.theme-dark .logo-pulse-path {
-  stroke: #f4f4f5;
+  stroke: var(--text-primary);
 }
 
 body.theme-light .logo-shield-path {
-  stroke: #c2410c;
+  stroke: var(--color-cyan);
 }
 body.theme-light .logo-pulse-path {
-  stroke: #18181b;
+  stroke: var(--text-primary);
 }
 
 .brand-text-block {
@@ -639,14 +659,14 @@ body.theme-light .logo-pulse-path {
   transition: all var(--transition-speed);
 }
 body.theme-dark .theme-micro-pill {
-  background: rgba(234, 88, 12, 0.14);
-  color: #ea580c;
-  border-color: rgba(234, 88, 12, 0.35);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent-border);
 }
 body.theme-light .theme-micro-pill {
-  background: rgba(194, 65, 12, 0.12);
-  color: #c2410c;
-  border-color: rgba(194, 65, 12, 0.35);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: var(--accent-border);
 }
 
 /* THEME TOGGLE ICONS: Dark mode shows active Moon; Light mode shows active Sun */
@@ -654,7 +674,7 @@ body.theme-dark .moon-icon {
   display: inline-block !important;
   width: 14px;
   height: 14px;
-  color: #ea580c;
+  color: var(--accent);
 }
 body.theme-dark .sun-icon {
   display: none !important;
@@ -664,7 +684,7 @@ body.theme-light .sun-icon {
   display: inline-block !important;
   width: 14px;
   height: 14px;
-  color: #c2410c;
+  color: var(--accent);
 }
 body.theme-light .moon-icon {
   display: none !important;
@@ -771,11 +791,11 @@ body.theme-light .force-copilot-nav-btn:hover, body.theme-light .force-copilot-n
   font-family: var(--font-mono);
   font-size: 0.6rem;
   font-weight: 700;
-  background: rgba(234, 88, 12, 0.12);
+  background: var(--accent-subtle);
   color: var(--color-cyan);
   padding: 0.15rem 0.45rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(234, 88, 12, 0.25);
+  border: 1px solid var(--accent-border);
 }
 
 /* SIDEBAR FOOTER (Admin & Accounts Profile Button) */
@@ -804,16 +824,16 @@ body.theme-light .force-copilot-nav-btn:hover, body.theme-light .force-copilot-n
   width: 36px;
   height: 36px;
   border-radius: 16px; /* thickened (+10px) */
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: var(--accent-subtle);
+  border: 1px solid var(--accent-border);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 body.theme-light .profile-admin-avatar {
-  background: #d0e4f5;
-  border-color: #9ac2e6;
+  background: var(--accent-subtle);
+  border-color: var(--accent-border);
 }
 .profile-admin-meta {
   display: flex;
@@ -1038,7 +1058,7 @@ body.theme-light .profile-admin-avatar {
 body.theme-light .appreciation-bubble {
   background: rgba(21, 128, 61, 0.12) !important;
   border: 1.5px solid rgba(21, 128, 61, 0.45) !important;
-  color: #050811 !important;
+  color: var(--text-primary) !important;
 }
 @keyframes celebratePop {
   0% { transform: scale(0.92); opacity: 0; }
@@ -1093,7 +1113,7 @@ body.theme-light .category-pills-horizontal {
 
 .stories-strip-wrapper::-webkit-scrollbar-thumb:hover,
 .category-pills-horizontal::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(234, 88, 12, 0.7);
+  background-color: var(--accent);
 }
 
 body.theme-light .stories-strip-wrapper::-webkit-scrollbar-thumb,
@@ -1103,7 +1123,7 @@ body.theme-light .category-pills-horizontal::-webkit-scrollbar-thumb {
 
 body.theme-light .stories-strip-wrapper::-webkit-scrollbar-thumb:hover,
 body.theme-light .category-pills-horizontal::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(194, 65, 12, 0.7);
+  background-color: var(--accent);
 }
 
 .story-pill {
@@ -1135,7 +1155,7 @@ body.theme-light .category-pills-horizontal::-webkit-scrollbar-thumb:hover {
   justify-content: center;
   font-size: 0.7rem;
 }
-.ring-all { background: rgba(234, 88, 12, 0.14); color: var(--color-cyan); }
+.ring-all { background: var(--accent-subtle); color: var(--color-cyan); }
 .ring-s3 { background: var(--badge-s3-bg); color: var(--color-red); }
 .ring-s2 { background: var(--badge-s2-bg); color: var(--color-orange); }
 .ring-s1 { background: var(--badge-s1-bg); color: var(--color-amber); }
@@ -1826,12 +1846,12 @@ body.theme-light .pastel-badge-tag {
 body.theme-light .preset-pill-btn {
   background: var(--bg-surface);
   border-color: var(--border-subtle);
-  color: #050811;
+  color: var(--text-primary);
 }
 body.theme-light .preset-pill-btn:hover {
   background: var(--bg-surface-elevated);
-  color: #026aa2;
-  border-color: #026aa2;
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 /* FINANCIAL STATEMENTS */
